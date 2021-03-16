@@ -18,20 +18,26 @@ class MovieEvent extends BlocEvent {
   List<Object> get props => [link];
 }
 
+class LoadingEvent extends BlocEvent {}
+
 class CatalogueEvent extends BlocEvent {
-  final List<Cover> currentCovers;
-  final Function(EgybestRipository) onFetchServer;
+  final List<Cover> covers;
   final List<Map<String, String>> filters;
-  final isSearching;
+  final bool isSearching;
+  final String searchValue;
+  final int page;
+  final bool hasReachedMax;
 
   CatalogueEvent({
-    this.currentCovers: const <Cover>[],
-    @required this.onFetchServer,
+    this.covers: const <Cover>[],
     @required this.filters,
+    this.page: 1,
     this.isSearching: false,
+    this.searchValue,
+    this.hasReachedMax: true,
   });
 
   @override
   List<Object> get props =>
-      [currentCovers, onFetchServer, filters, isSearching];
+      [covers, filters, isSearching, searchValue, page, hasReachedMax];
 }

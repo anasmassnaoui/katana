@@ -7,6 +7,8 @@ class Catalogue extends Equatable {
   final bool hasReachedMax;
   final List<Map<String, String>> filters;
   final bool isSearching;
+  final String searchValue;
+  final bool loading;
 
   Catalogue({
     this.covers: const [],
@@ -17,8 +19,11 @@ class Catalogue extends Equatable {
       {'الآن': 'now'},
     ],
     this.isSearching: false,
+    this.loading: true,
+    this.searchValue,
   });
 
   @override
-  List<Object> get props => [covers, page, hasReachedMax, filters, isSearching];
+  List<Object> get props =>
+      [covers, page, hasReachedMax, filters, isSearching, searchValue];
 }

@@ -9,6 +9,9 @@ import 'package:meta/meta.dart';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
+import '../entities/catalogue.dart';
+import '../entities/catalogue.dart';
+
 part 'bloc_event.dart';
 part 'bloc_state.dart';
 
@@ -27,19 +30,40 @@ class CatalogueBloc extends Bloc<BlocEvent, BlocState> {
   Stream<BlocState> mapEventToState(
     BlocEvent event,
   ) async* {
+    if (event is LoadingEvent) yield LoadingState();
+
     if (event is CatalogueEvent) {
-      if (event.currentCovers.isEmpty) yield LoadingState();
-      yield (await event.onFetchServer(egybestRipository)).fold(
-        (error) => ErrorState(message: 'server error'),
-        (catalogue) => CatalogueState(
-            catalogue: Catalogue(
-          covers: event.currentCovers + catalogue.covers,
-          page: catalogue.page,
-          hasReachedMax: catalogue.hasReachedMax,
-          filters: event.filters,
-          isSearching: event.isSearching,
-        )),
-      );
+      yield CatalogueState(
+          catalogue: Catalogue(
+        covers: event.covers,
+        page: event.page,
+        filters: event.filters,
+        hasReachedMax: event.hasReachedMax,
+        isSearching: event.isSearching,
+        searchValue: event.searchValue,
+      ));
+      /*if (event.online) {
+        //if (event.covers.isEmpty) yield LoadingState();
+        yield await egybestRipository
+            .getTrending(
+              filters: event.filters,
+              page: event.page,
+              searchValue: event.searchValue,
+            )
+            .then((result) => result.fold(
+                  (error) => ErrorState(message: 'server error'),
+                  (catalogue) => CatalogueState(
+                      catalogue: Catalogue(
+                    covers: event.covers + catalogue.covers,
+                    page: catalogue.page,
+                    filters: event.filters,
+                    hasReachedMax: catalogue.hasReachedMax,
+                    isSearching: event.isSearching,
+                    searchValue: event.searchValue,
+                    loading: false,
+                  )),
+                ));
+      }*/
     }
     if (event is MovieEvent) {
       yield LoadingState();

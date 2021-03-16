@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:katana/widgets/catalogue_view.dart';
+import 'package:katana/pages/trending_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -10,8 +10,6 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   TextEditingController textEditingController = TextEditingController();
   int selectedPage = 1;
-  bool isSearching = false;
-  String searchValue;
 
   void selectPage(int page) {
     if (page != selectedPage)
@@ -23,40 +21,9 @@ class HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: !isSearching
-            ? Text('Katana')
-            : TextField(
-                controller: textEditingController,
-                onSubmitted: (value) => setState(() => searchValue = value),
-                autofocus: true,
-                decoration: InputDecoration(
-                    hintText: 'Search',
-                    border: OutlineInputBorder(borderSide: BorderSide.none),
-                    prefixIcon: IconButton(
-                      icon: Icon(Icons.arrow_back),
-                      onPressed: () => setState(() {
-                        isSearching = !isSearching;
-                        searchValue = null;
-                        textEditingController.clear();
-                      }),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => textEditingController.clear(),
-                    )),
-              ),
-        leading: !isSearching
-            ? IconButton(
-                icon: Icon(CupertinoIcons.search),
-                onPressed: () => setState(() => isSearching = !isSearching),
-              )
-            : null,
-      ),
-      body: CatalogueView(
-        searchValue: searchValue,
-        isSearching: isSearching,
+      body: IndexedStack(
+        children: [TrendingPage()],
+        index: 0,
       ),
       bottomNavigationBar: BottomAppBar(
         color: Theme.of(context).primaryColor,
