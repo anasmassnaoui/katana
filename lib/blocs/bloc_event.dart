@@ -20,6 +20,17 @@ class MovieEvent extends BlocEvent {
 
 class LoadingEvent extends BlocEvent {}
 
+class ErrorEvent extends BlocEvent {
+  final String message;
+
+  ErrorEvent({
+    @required this.message,
+  });
+
+  @override
+  List<Object> get props => [message];
+}
+
 class CatalogueEvent extends BlocEvent {
   final List<Cover> covers;
   final List<Map<String, String>> filters;
@@ -30,7 +41,7 @@ class CatalogueEvent extends BlocEvent {
 
   CatalogueEvent({
     this.covers: const <Cover>[],
-    @required this.filters,
+    this.filters,
     this.page: 1,
     this.isSearching: false,
     this.searchValue,

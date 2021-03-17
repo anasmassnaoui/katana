@@ -24,13 +24,21 @@ class ErrorState extends BlocState {
 
 class CatalogueState extends BlocState {
   final Catalogue catalogue;
+  final List<Map<String, String>> filters;
+  final bool isSearching;
+  final String searchValue;
+  final bool loading;
 
   CatalogueState({
     @required this.catalogue,
+    this.filters,
+    this.isSearching: false,
+    this.loading: true,
+    this.searchValue,
   });
 
   @override
-  List<Object> get props => [catalogue];
+  List<Object> get props => [catalogue, filters, isSearching, searchValue];
 }
 
 class MovieState extends BlocState {
