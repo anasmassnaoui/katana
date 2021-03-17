@@ -27,13 +27,11 @@ class CatalogueState extends BlocState {
   final List<Map<String, String>> filters;
   final bool isSearching;
   final String searchValue;
-  final bool loading;
 
   CatalogueState({
     @required this.catalogue,
     this.filters,
     this.isSearching: false,
-    this.loading: true,
     this.searchValue,
   });
 
