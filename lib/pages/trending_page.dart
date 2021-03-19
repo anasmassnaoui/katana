@@ -31,6 +31,7 @@ class TrendingPageState extends State<TrendingPage> {
     if (state is ErrorState)
       return Message(message: state.message);
     else if (state is CatalogueState && !state.catalogue.hasReachedMax)
+      //return CupertinoActivityIndicator.partiallyRevealed();
       return Loading(padding: EdgeInsets.symmetric(vertical: 10));
     return null;
   }
@@ -130,7 +131,6 @@ class TrendingPageState extends State<TrendingPage> {
       filters = filters.toList();
       filters[index] = {choice: choices[choice]};
     }
-
     fetchCovers(filters: filters);
   }
 
@@ -240,43 +240,47 @@ class TrendingPageState extends State<TrendingPage> {
                           filters: state.filters,
                           searchValue: state.searchValue,
                           isSearching: state.isSearching,
+                          hasReachedMax: state.catalogue.hasReachedMax,
                         );
                       }
                       return false;
                     },
                     child: CustomScrollView(
                       slivers: [
-                        SliverGrid.count(
-                          crossAxisCount:
-                              (MediaQuery.of(context).size.width / 140).round(),
-                          childAspectRatio: 0.7,
-                          children: List.generate(
-                            state.catalogue.covers.length,
-                            (index) => GestureDetector(
-                              onTap: () {
-                                final cover = state.catalogue.covers[index];
-                                switch (cover.type) {
-                                  case CoverType.Movie:
-                                    loadPage(
-                                        context,
-                                        MoviePage(
-                                          link: cover.link,
-                                          title: cover.title,
-                                        ));
-                                    break;
-                                  default:
-                                }
-                              },
-                              child: Card(
-                                child: Image.network(
-                                  state.catalogue.covers[index].image,
-                                  fit: BoxFit.fill,
-                                  headers: getIt<Client>().headers,
+                        SliverGrid(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => GestureDetector(
+                                onTap: () {
+                                  final cover = state.catalogue.covers[index];
+                                  switch (cover.type) {
+                                    case CoverType.Movie:
+                                      loadPage(
+                                          context,
+                                          MoviePage(
+                                            link: cover.link,
+                                            title: cover.title,
+                                          ));
+                                      break;
+                                    default:
+                                  }
+                                },
+                                child: Card(
+                                  child: Image.network(
+                                    state.catalogue.covers[index].image,
+                                    fit: BoxFit.fill,
+                                    headers: getIt<Client>().headers,
+                                  ),
                                 ),
                               ),
+                              childCount: state.catalogue.covers.length,
                             ),
-                          ),
-                        ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                    childAspectRatio: 0.7,
+                                    crossAxisCount:
+                                        (MediaQuery.of(context).size.width /
+                                                140)
+                                            .round())),
                         SliverToBoxAdapter(
                           child: buildFooter(state),
                         )

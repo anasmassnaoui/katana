@@ -1,0 +1,40 @@
+PODS:
+  - Flutter (1.0.0)
+  - flutter_user_agent (1.2.2):
+    - Flutter
+  - interactive_webview (0.0.1):
+    - Flutter
+  - video_player (0.0.1):
+    - Flutter
+  - wakelock (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - flutter_user_agent (from `.symlinks/plugins/flutter_user_agent/ios`)
+  - interactive_webview (from `.symlinks/plugins/interactive_webview/ios`)
+  - video_player (from `.symlinks/plugins/video_player/ios`)
+  - wakelock (from `.symlinks/plugins/wakelock/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  flutter_user_agent:
+    :path: ".symlinks/plugins/flutter_user_agent/ios"
+  interactive_webview:
+    :path: ".symlinks/plugins/interactive_webview/ios"
+  video_player:
+    :path: ".symlinks/plugins/video_player/ios"
+  wakelock:
+    :path: ".symlinks/plugins/wakelock/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 434fef37c0980e73bb6479ef766c45957d4b510c
+  flutter_user_agent: 27c45d034dc31b80948d29998cea52cd3a7bf936
+  interactive_webview: 645deb8ecb0f8564ca2017e691338854c5d6a061
+  video_player: 9cc823b1d9da7e8427ee591e8438bfbcde500e6e
+  wakelock: bfc7955c418d0db797614075aabbc58a39ab5107
+
+PODFILE CHECKSUM: aafe91acc616949ddb318b77800a7f51bffa2a4c
+
+COCOAPODS: 1.10.1
