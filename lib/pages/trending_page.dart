@@ -15,10 +15,6 @@ import 'package:katana/widgets/message.dart';
 import 'package:katana/utils/filters.dart';
 
 import '../blocs/catalogue_bloc.dart';
-import '../blocs/catalogue_bloc.dart';
-import '../blocs/catalogue_bloc.dart';
-import '../blocs/catalogue_bloc.dart';
-import '../blocs/catalogue_bloc.dart';
 import '../widgets/loading.dart';
 
 class TrendingPage extends StatefulWidget {
@@ -78,6 +74,14 @@ class TrendingPageState extends State<TrendingPage> {
     bool isSearching: false,
     bool hasReachedMax: true,
   }) {
+    updateState(
+      filters: filters,
+      covers: oldCovers,
+      page: page,
+      searchValue: searchValue,
+      isSearching: isSearching,
+      hasReachedMax: hasReachedMax,
+    );
     if (oldCovers.isEmpty) displayLoading();
     catalogueBloc.egybestRipository
         .getTrending(
@@ -122,9 +126,10 @@ class TrendingPageState extends State<TrendingPage> {
           first.key: first.value,
         });
       });
-    } else
-      //filters = filters.toList();
+    } else {
+      filters = filters.toList();
       filters[index] = {choice: choices[choice]};
+    }
 
     fetchCovers(filters: filters);
   }
@@ -152,52 +157,58 @@ class TrendingPageState extends State<TrendingPage> {
     return BlocProvider(
       create: (context) => getIt<CatalogueBloc>(),
       child: Scaffold(
-        appBar: BlocBuilder<CatalogueBloc, BlocState>(
-          builder: (context, state) {
-            if (state is CatalogueState)
-              return AppBar(
-                centerTitle: true,
-                title: !state.isSearching
-                    ? Text('Katana')
-                    : TextField(
-                        autofocus: isNull(state.searchValue),
-                        onSubmitted: (value) => fetchCovers(
-                          filters: state.filters,
-                          searchValue: value,
-                          isSearching: true,
-                        ),
-                        controller: textEditingController
-                          ..text = state.searchValue ?? '',
-                        decoration: InputDecoration(
-                            hintText: 'Search',
-                            border:
-                                OutlineInputBorder(borderSide: BorderSide.none),
-                            prefixIcon: IconButton(
-                              icon: Icon(Icons.arrow_back),
-                              onPressed: () => fetchCovers(
-                                filters: state.filters,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(50.0),
+          child: BlocBuilder<CatalogueBloc, BlocState>(
+            buildWhen: (previous, current) => !(current is LoadingState),
+            builder: (context, state) {
+              if (state is CatalogueState)
+                return AppBar(
+                  centerTitle: true,
+                  title: !state.isSearching
+                      ? Text('Katana')
+                      : TextField(
+                          autofocus: isNull(state.searchValue),
+                          onSubmitted: (value) => fetchCovers(
+                            filters: state.filters,
+                            searchValue: value,
+                            isSearching: true,
+                          ),
+                          controller: textEditingController
+                            ..text = state.searchValue ?? '',
+                          decoration: InputDecoration(
+                              hintText: 'Search',
+                              border: OutlineInputBorder(
+                                  borderSide: BorderSide.none),
+                              prefixIcon: IconButton(
+                                icon: Icon(Icons.arrow_back),
+                                onPressed: () => fetchCovers(
+                                  filters: state.filters,
+                                ),
                               ),
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(Icons.close),
-                              onPressed: () => updateState(
+                              suffixIcon: IconButton(
+                                icon: Icon(Icons.close),
+                                onPressed: () => updateState(
+                                  filters: state.filters,
+                                  isSearching: true,
+                                ),
+                              )),
+                        ),
+                  leading: !state.isSearching
+                      ? IconButton(
+                          icon: Icon(CupertinoIcons.search),
+                          onPressed: () => updateState(
                                 filters: state.filters,
                                 isSearching: true,
-                              ),
-                            )),
-                      ),
-                leading: !state.isSearching
-                    ? IconButton(
-                        icon: Icon(CupertinoIcons.search),
-                        onPressed: () => updateState(
-                              filters: state.filters,
-                              isSearching: true,
-                            ))
-                    : null,
+                              ))
+                      : null,
+                );
+              return AppBar(
+                title: Text("Loading..."),
               );
-            return AppBar();
-          },
-        ) as AppBar,
+            },
+          ),
+        ),
         body: BlocBuilder<CatalogueBloc, BlocState>(
           builder: (context, state) {
             if (state is InitState) {
@@ -205,22 +216,6 @@ class TrendingPageState extends State<TrendingPage> {
               fetchCovers();
             }
             if (state is CatalogueState) {
-              ScrollController scrollController = ScrollController();
-              scrollController.addListener(() {
-                if (!state.catalogue.hasReachedMax &&
-                    !fired &&
-                    scrollController.position.pixels >=
-                        scrollController.position.maxScrollExtent) {
-                  fired = true;
-                  fetchCovers(
-                    oldCovers: state.catalogue.covers,
-                    page: state.catalogue.page,
-                    filters: state.filters,
-                    searchValue: state.searchValue,
-                    isSearching: state.isSearching,
-                  );
-                }
-              });
               fired = false;
               return Column(children: [
                 Visibility(
@@ -232,44 +227,61 @@ class TrendingPageState extends State<TrendingPage> {
                   ),
                 ),
                 Expanded(
-                  child: CustomScrollView(
-                    controller: scrollController,
-                    slivers: [
-                      SliverGrid.count(
-                        crossAxisCount:
-                            (MediaQuery.of(context).size.width / 140).round(),
-                        childAspectRatio: 0.7,
-                        children: List.generate(
-                          state.catalogue.covers.length,
-                          (index) => GestureDetector(
-                            onTap: () {
-                              final cover = state.catalogue.covers[index];
-                              switch (cover.type) {
-                                case CoverType.Movie:
-                                  loadPage(
-                                      context,
-                                      MoviePage(
-                                        link: cover.link,
-                                        title: cover.title,
-                                      ));
-                                  break;
-                                default:
-                              }
-                            },
-                            child: Card(
-                              child: Image.network(
-                                state.catalogue.covers[index].image,
-                                fit: BoxFit.fill,
-                                headers: getIt<Client>().headers,
+                  child: NotificationListener<ScrollEndNotification>(
+                    onNotification: (notification) {
+                      if (!state.catalogue.hasReachedMax &&
+                          !fired &&
+                          notification.metrics.pixels >=
+                              notification.metrics.maxScrollExtent) {
+                        fired = true;
+                        fetchCovers(
+                          oldCovers: state.catalogue.covers,
+                          page: state.catalogue.page,
+                          filters: state.filters,
+                          searchValue: state.searchValue,
+                          isSearching: state.isSearching,
+                        );
+                      }
+                      return false;
+                    },
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverGrid.count(
+                          crossAxisCount:
+                              (MediaQuery.of(context).size.width / 140).round(),
+                          childAspectRatio: 0.7,
+                          children: List.generate(
+                            state.catalogue.covers.length,
+                            (index) => GestureDetector(
+                              onTap: () {
+                                final cover = state.catalogue.covers[index];
+                                switch (cover.type) {
+                                  case CoverType.Movie:
+                                    loadPage(
+                                        context,
+                                        MoviePage(
+                                          link: cover.link,
+                                          title: cover.title,
+                                        ));
+                                    break;
+                                  default:
+                                }
+                              },
+                              child: Card(
+                                child: Image.network(
+                                  state.catalogue.covers[index].image,
+                                  fit: BoxFit.fill,
+                                  headers: getIt<Client>().headers,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      SliverToBoxAdapter(
-                        child: buildFooter(state),
-                      )
-                    ],
+                        SliverToBoxAdapter(
+                          child: buildFooter(state),
+                        )
+                      ],
+                    ),
                   ),
                 ),
               ]);
