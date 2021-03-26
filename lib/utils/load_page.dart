@@ -12,6 +12,7 @@ void loadPage(BuildContext context, Widget child) {
   // );
   showDialog(
     context: context,
+    barrierDismissible: false,
     builder: (_) => child,
   );
 }

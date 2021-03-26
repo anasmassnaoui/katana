@@ -227,12 +227,12 @@ class TrendingPageState extends State<TrendingPage> {
                   ),
                 ),
                 Expanded(
-                  child: NotificationListener<ScrollEndNotification>(
+                  child: NotificationListener<ScrollNotification>(
                     onNotification: (notification) {
                       if (!state.catalogue.hasReachedMax &&
                           !fired &&
                           notification.metrics.pixels >=
-                              notification.metrics.maxScrollExtent) {
+                              notification.metrics.maxScrollExtent - 60) {
                         fired = true;
                         fetchCovers(
                           oldCovers: state.catalogue.covers,
