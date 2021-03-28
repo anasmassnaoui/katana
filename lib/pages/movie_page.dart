@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/movie.dart';
 import 'package:katana/setup/get_it.dart';
+import 'package:katana/utils/client.dart';
 import 'package:katana/widgets/loading.dart';
 
 class MoviePage extends StatelessWidget {
@@ -25,14 +26,6 @@ class MoviePage extends StatelessWidget {
       builder: (context, controller) => ClipRRect(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         child: Scaffold(
-          // appBar: AppBar(
-          //   title: Text('-'),
-          //   centerTitle: true,
-          //   leading: IconButton(
-          //     icon: Icon(Icons.close),
-          //     onPressed: () => Navigator.pop(context),
-          //   ),
-          // ),
           body: NotificationListener<OverscrollIndicatorNotification>(
             onNotification: (notification) {
               notification.disallowGlow();
@@ -60,6 +53,7 @@ class MoviePage extends StatelessWidget {
                                   ),
                                   child: Image.network(
                                     movie.image,
+                                    headers: getIt<Client>().headers,
                                     loadingBuilder: (context, child,
                                             loadingProgress) =>
                                         (loadingProgress == null ||
@@ -68,103 +62,104 @@ class MoviePage extends StatelessWidget {
                                                     loadingProgress
                                                         .expectedTotalBytes)
                                             ? child
-                                            : AspectRatio(
-                                                aspectRatio: 0.8,
-                                                child: Loading(),
-                                              ),
+                                            : Loading(),
                                   ),
                                 ),
                               ),
                               Expanded(
-                                  child: Stack(
-                                //mainAxisAlignment: MainAxisAlignment.center,
+                                  child: Column(
                                 children: [
-                                  Align(
-                                    alignment: Alignment.topRight,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10.0),
-                                      child: GestureDetector(
-                                        onTap: () => Navigator.pop(context),
-                                        child: Container(
-                                          padding: EdgeInsets.all(10.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black,
-                                            borderRadius:
-                                                BorderRadius.circular(50.0),
-                                          ),
-                                          child: Icon(
-                                            Icons.close,
-                                            size: 15,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: Alignment.topCenter,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                          top: 8.0, left: 8.0, right: 50.0),
-                                      child: Container(
-                                        padding: EdgeInsets.all(10.0),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black,
-                                          borderRadius:
-                                              BorderRadius.circular(20.0),
-                                        ),
-                                        child: Text(
-                                          movie.title,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 15.0,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Container(
-                                          width: double.infinity,
-                                          padding: EdgeInsets.all(10.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black,
-                                            borderRadius:
-                                                BorderRadius.circular(20.0),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 8.0,
+                                            left: 8.0,
                                           ),
-                                          child: Text(
-                                            movie.type,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: 15.0,
+                                          child: Container(
+                                            padding: EdgeInsets.all(10.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius:
+                                                  BorderRadius.circular(20.0),
+                                            ),
+                                            child: Text(
+                                              movie.title,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 15.0,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
                                       Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Container(
-                                          width: double.infinity,
-                                          padding: EdgeInsets.all(10.0),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black,
-                                            borderRadius:
-                                                BorderRadius.circular(20.0),
-                                          ),
-                                          child: Text(
-                                            movie.duration,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: 15.0,
+                                        padding: const EdgeInsets.all(10.0),
+                                        child: GestureDetector(
+                                          onTap: () => Navigator.pop(context),
+                                          child: Container(
+                                            padding: EdgeInsets.all(10.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius:
+                                                  BorderRadius.circular(50.0),
+                                            ),
+                                            child: Icon(
+                                              Icons.close,
+                                              size: 15,
                                             ),
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: EdgeInsets.all(10.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius:
+                                                  BorderRadius.circular(20.0),
+                                            ),
+                                            child: Text(
+                                              movie.type,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 15.0,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: EdgeInsets.all(10.0),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius:
+                                                  BorderRadius.circular(20.0),
+                                            ),
+                                            child: Text(
+                                              movie.duration,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 15.0,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
                                 ],
                               )),
                             ],
@@ -188,6 +183,7 @@ class MoviePage extends StatelessWidget {
                                       .contains(RegExp(r'[\u0600-\u06FF]'))
                                   ? TextDirection.rtl
                                   : TextDirection.ltr,
+                              textAlign: TextAlign.justify,
                               style: TextStyle(
                                 fontSize: 16.0,
                                 color: Colors.grey,
