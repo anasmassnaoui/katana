@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/cover.dart';
 import 'package:katana/pages/movie_page.dart';
+import 'package:katana/pages/serie_page.dart';
 import 'package:katana/setup/get_it.dart';
 import 'package:katana/utils/client.dart';
 import 'package:katana/utils/is_null.dart';
@@ -260,6 +261,13 @@ class TrendingPageState extends State<TrendingPage> {
                                             link: cover.link,
                                             title: cover.title,
                                           ));
+                                      break;
+                                    case CoverType.Serie:
+                                      loadPage(
+                                          context,
+                                          SeriePage(
+                                              link: cover.link,
+                                              title: cover.title));
                                       break;
                                     default:
                                   }

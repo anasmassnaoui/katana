@@ -10,6 +10,7 @@ class SerieModel extends Serie {
     @required String story,
     @required String type,
     @required String link,
+    @required List<Map<String, String>> seasons,
   }) : super(
           id: id,
           title: title,
@@ -17,26 +18,30 @@ class SerieModel extends Serie {
           story: story,
           type: type,
           link: link,
+          seasons: seasons,
         );
 
   factory SerieModel.fromJson(Map<String, dynamic> json) {
     return SerieModel(
-        id: getId(json['id']),
-        title: json['title'],
-        image: json['image'],
-        story: json['story'],
-        type: json['type'],
-        link: json['image']);
+      id: getId(json['id']),
+      title: json['title'],
+      image: json['image'],
+      story: json['story'],
+      type: json['type'],
+      link: json['link'],
+      seasons: json['seasons'],
+    );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      id: id,
-      title: title,
-      image: image,
-      story: story,
-      type: type,
-      link: link,
+      'id': id,
+      'title': title,
+      'image': image,
+      'story': story,
+      'type': type,
+      'link': link,
+      'seasons': seasons,
     };
   }
 }

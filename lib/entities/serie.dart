@@ -9,8 +9,7 @@ class Serie extends Equatable {
   final String story;
   final String type;
   final String link;
-
-  final List<Season> seasons = [];
+  final List<Map<String, String>> seasons;
 
   Serie({
     @required this.id,
@@ -19,9 +18,8 @@ class Serie extends Equatable {
     @required this.story,
     @required this.type,
     @required this.link,
+    @required this.seasons,
   });
-
-  void addSeason(Season season) => seasons.add(season);
 
   @override
   List<Object> get props => [id, title, image, story, type, link, seasons];

@@ -1,8 +1,13 @@
 import 'package:html/parser.dart';
 import 'package:katana/entities/cover.dart';
+import 'package:katana/entities/episode.dart';
+import 'package:katana/entities/season.dart';
 import 'package:katana/errors/error.dart';
 import 'package:katana/models/catalogue_model.dart';
+import 'package:katana/models/episode_moidel.dart';
 import 'package:katana/models/movie_model.dart';
+import 'package:katana/models/season_model.dart';
+import 'package:katana/models/serie_model.dart';
 import 'package:katana/utils/client.dart';
 import 'package:meta/meta.dart';
 
@@ -17,6 +22,8 @@ abstract class EgybestInterface {
   });
 
   Future<MovieModel> getMovie(String link);
+  Future<SerieModel> getSerie(String link);
+  Future<SeasonModel> getSeason(String link);
 }
 
 class EgybestDatasource extends EgybestInterface {
@@ -108,6 +115,75 @@ class EgybestDatasource extends EgybestInterface {
         'type': tableInfo[3].getElementsByTagName('td')[1].text,
         'duration': tableInfo[5].getElementsByTagName('td')[1].text,
         'link': link,
+      });
+    } catch (e) {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<SerieModel> getSerie(String link) async {
+    try {
+      final res = await client.get('$link&output_format=json');
+      final parser = parse(res.data['html']);
+      final tableInfo = parser
+          .getElementsByClassName('movieTable')[0]
+          .getElementsByTagName('tr');
+      final storySection = parser
+          .getElementsByClassName('mbox')[2]
+          .getElementsByTagName('div')[1];
+
+      return SerieModel.fromJson({
+        'id': link,
+        'title': tableInfo[0].text,
+        'image': parser
+            .getElementsByClassName('movie_img')[0]
+            .getElementsByTagName('img')[0]
+            .attributes['src'],
+        'story': storySection.innerHtml.split('<br>').last,
+        'type': tableInfo[3].getElementsByTagName('td')[1].text,
+        'link': link,
+        'seasons': parser
+            .getElementsByClassName('mbox')[5]
+            .getElementsByClassName('movie')
+            .map((season) => {
+                  'title': season.getElementsByClassName('title')[0].innerHtml,
+                  'link': season.attributes['href'],
+                })
+            .toList()
+            .reversed
+            .toList(),
+      });
+    } catch (e) {
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<SeasonModel> getSeason(String link) async {
+    try {
+      final res = await client.get('$link&output_format=json');
+      final parser = parse(res.data['html']);
+      final episodes = parser
+          .getElementsByClassName('mbox')[5]
+          .getElementsByClassName('movie');
+
+      return SeasonModel.fromJson({
+        'link': link,
+        'title': '',
+        'episodes': episodes
+            .map(
+              (episode) => EpisodeModel.fromJson(
+                {
+                  'id': episode.attributes['href'],
+                  'link': episode.attributes['href'],
+                  'title': episode.getElementsByClassName('title')[0].innerHtml,
+                  'image':
+                      episode.getElementsByTagName('img')[0].attributes['src'],
+                },
+              ),
+            )
+            .toList(),
       });
     } catch (e) {
       throw ServerException();

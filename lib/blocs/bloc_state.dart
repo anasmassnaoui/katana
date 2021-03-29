@@ -60,3 +60,14 @@ class SerieState extends BlocState {
   @override
   List<Object> get props => [serie];
 }
+
+class SeasonState extends BlocState {
+  final Season season;
+
+  SeasonState({
+    @required this.season,
+  });
+
+  @override
+  List<Object> get props => [season];
+}

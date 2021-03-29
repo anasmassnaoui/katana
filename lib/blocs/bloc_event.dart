@@ -18,6 +18,28 @@ class MovieEvent extends BlocEvent {
   List<Object> get props => [link];
 }
 
+class SerieEvent extends BlocEvent {
+  final String link;
+
+  SerieEvent({
+    @required this.link,
+  });
+
+  @override
+  List<Object> get props => [link];
+}
+
+class SeasonEvent extends BlocEvent {
+  final String link;
+
+  SeasonEvent({
+    @required this.link,
+  });
+
+  @override
+  List<Object> get props => [link];
+}
+
 class LoadingEvent extends BlocEvent {}
 
 class ErrorEvent extends BlocEvent {

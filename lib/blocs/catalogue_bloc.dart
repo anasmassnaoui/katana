@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:katana/entities/catalogue.dart';
 import 'package:katana/entities/cover.dart';
 import 'package:katana/entities/movie.dart';
+import 'package:katana/entities/season.dart';
 import 'package:katana/entities/serie.dart';
 import 'package:katana/repositories/egybest_repository.dart';
 import 'package:meta/meta.dart';
@@ -48,6 +49,22 @@ class CatalogueBloc extends Bloc<BlocEvent, BlocState> {
       yield (await egybestRipository.getMovie(event.link)).fold(
         (error) => ErrorState(message: 'server error'),
         (movie) => MovieState(movie: movie),
+      );
+    }
+
+    if (event is SerieEvent) {
+      yield LoadingState();
+      yield (await egybestRipository.getSerie(event.link)).fold(
+        (error) => ErrorState(message: 'server error'),
+        (serie) => SerieState(serie: serie),
+      );
+    }
+
+    if (event is SeasonEvent) {
+      yield LoadingState();
+      yield (await egybestRipository.getSeason(event.link)).fold(
+        (error) => ErrorState(message: 'server error'),
+        (season) => SeasonState(season: season),
       );
     }
   }

@@ -3,6 +3,8 @@ import 'package:katana/entities/catalogue.dart';
 import 'package:katana/errors/error.dart';
 import 'package:katana/datasource/egybest_data_source.dart';
 import 'package:katana/models/movie_model.dart';
+import 'package:katana/models/season_model.dart';
+import 'package:katana/models/serie_model.dart';
 
 import 'package:meta/meta.dart';
 
@@ -28,6 +30,22 @@ class EgybestRipository {
   Future<Either<Error, MovieModel>> getMovie(String link) async {
     try {
       return Right(await egybestDatasource.getMovie(link));
+    } on ServerException {
+      return Left(ServerError());
+    }
+  }
+
+  Future<Either<Error, SerieModel>> getSerie(String link) async {
+    try {
+      return Right(await egybestDatasource.getSerie(link));
+    } on ServerException {
+      return Left(ServerError());
+    }
+  }
+
+  Future<Either<Error, SeasonModel>> getSeason(String link) async {
+    try {
+      return Right(await egybestDatasource.getSeason(link));
     } on ServerException {
       return Left(ServerError());
     }

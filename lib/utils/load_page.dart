@@ -10,9 +10,18 @@ void loadPage(BuildContext context, Widget child) {
   //     ),
   //   ),
   // );
-  showDialog(
+  showModalBottomSheet(
+    isScrollControlled: true,
     context: context,
-    barrierDismissible: false,
+    shape: OutlineInputBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        borderSide: BorderSide(style: BorderStyle.none)),
+    clipBehavior: Clip.hardEdge,
     builder: (_) => child,
   );
+  // showDialog(
+  //   context: context,
+  //   barrierDismissible: false,
+  //   builder: (_) => child,
+  // );
 }
