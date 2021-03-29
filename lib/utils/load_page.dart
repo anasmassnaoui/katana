@@ -19,6 +19,7 @@ void loadPage(BuildContext context, Widget child) {
     clipBehavior: Clip.hardEdge,
     builder: (_) => child,
   );
+
   // showDialog(
   //   context: context,
   //   barrierDismissible: false,
