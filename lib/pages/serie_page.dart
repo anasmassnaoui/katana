@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
@@ -9,9 +10,12 @@ import 'package:katana/setup/get_it.dart';
 import 'package:katana/utils/client.dart';
 import 'package:katana/widgets/loading.dart';
 
+import '../blocs/catalogue_bloc.dart';
+
 class SeriePage extends StatelessWidget {
   final String link;
   final String title;
+  final ScrollController controller = ScrollController();
 
   SeriePage({
     Key key,
@@ -21,18 +25,19 @@ class SeriePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomSheet(
-      onClosing: () => print('what!!!!!'),
-      onDragStart: (details) => print('drag start'),
-      onDragEnd: (details, {isClosing}) => print('drag end'),
-      enableDrag: true,
-      builder: (_) => NotificationListener<OverscrollIndicatorNotification>(
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: MediaQuery.of(context).size.height / 2,
+        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+      ),
+      child: NotificationListener<OverscrollIndicatorNotification>(
         onNotification: (notification) {
           notification.disallowGlow();
           return true;
         },
         child: SingleChildScrollView(
-          //controller: controller,
+          dragStartBehavior: DragStartBehavior.down,
+          controller: controller,
           child: BlocProvider(
             create: (context) =>
                 getIt<CatalogueBloc>()..add(SerieEvent(link: link)),
@@ -143,6 +148,26 @@ class SeriePage extends StatelessWidget {
                                         ),
                                       ),
                                     ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: EdgeInsets.all(10.0),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black,
+                                          borderRadius:
+                                              BorderRadius.circular(20.0),
+                                        ),
+                                        child: Text(
+                                          'عدد المواسم : ' +
+                                              serie.seasons.length.toString(),
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 15.0,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               )
@@ -177,51 +202,78 @@ class SeriePage extends StatelessWidget {
                         ),
                       ),
                       BlocProvider(
-                        create: (context) {
-                          print('init');
-                          // controller.addListener(() {
-                          //   if (!fired &&
-                          //       controller.position.pixels >=
-                          //           controller.position.maxScrollExtent) {
-                          //     fired = !fired;
-                          //     print('reach the end');
-                          //   }
-                          // });
-                          return getIt<CatalogueBloc>();
-                        },
+                        create: (context) => getIt<CatalogueBloc>()
+                          ..add(SeasonEvent(
+                              link: serie.seasons[currentSeason]['link'])),
                         child: BlocBuilder<CatalogueBloc, BlocState>(
                           builder: (context, state) {
                             if (state is InitState) {
-                              //BlocProvider.of<CatalogueBloc>(context);
-                              // controller.addListener(() {
-                              //   if (!fired &&
-                              //       controller.position.pixels >=
-                              //           controller.position.maxScrollExtent) {
-                              //     fired = true;
-                              //     print('called');
-                              //     // seasonsBloc.add(
-                              //     //   SeasonEvent(
-                              //     //     link: serie.seasons[currentSeason]
-                              //     //         ['link'],
-                              //     //   ),
-                              //     // );
-                              //   }
-                              // });
-
+                              controller.addListener(() {
+                                if (!fired &&
+                                    currentSeason < serie.seasons.length &&
+                                    controller.position.pixels >=
+                                        controller.position.maxScrollExtent -
+                                            35) {
+                                  fired = true;
+                                  BlocProvider.of<CatalogueBloc>(context).add(
+                                    SeasonEvent(
+                                      link: serie.seasons[currentSeason]
+                                          ['link'],
+                                    ),
+                                  );
+                                  print('called');
+                                }
+                              });
                             }
                             if (state is SeasonState) {
                               final season = state.season;
+                              fired = false;
                               seasons.add(Season(
                                 title: serie.seasons[currentSeason++]['title'],
                                 link: season.link,
                                 episodes: season.episodes,
                               ));
                             }
-                            return ListView.separated(
-                              shrinkWrap: true,
-                              itemBuilder: (context, index) => Text('$index'),
-                              separatorBuilder: (context, index) => Divider(),
-                              itemCount: seasons.length,
+                            return Column(
+                              children: [
+                                ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemBuilder: (context, index) => Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        seasons[index].title,
+                                        textAlign: TextAlign.end,
+                                      ),
+                                      Container(
+                                        height: 200,
+                                        child: ListView.separated(
+                                          scrollDirection: Axis.horizontal,
+                                          itemBuilder: (_, _index) =>
+                                              Image.network(seasons[index]
+                                                  .episodes[_index]
+                                                  .image),
+                                          separatorBuilder: (_, __) => SizedBox(
+                                            width: 10,
+                                          ),
+                                          itemCount:
+                                              seasons[index].episodes.length,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  separatorBuilder: (context, index) =>
+                                      Divider(),
+                                  itemCount: seasons.length,
+                                ),
+                                currentSeason < serie.seasons.length
+                                    ? Container(
+                                        padding: EdgeInsets.all(20.0),
+                                        child: Loading())
+                                    : Container(),
+                              ],
                             );
                           },
                         ),

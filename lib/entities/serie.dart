@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:katana/entities/season.dart';
 import 'package:meta/meta.dart';
 
 class Serie extends Equatable {

@@ -1,7 +1,5 @@
 import 'package:html/parser.dart';
 import 'package:katana/entities/cover.dart';
-import 'package:katana/entities/episode.dart';
-import 'package:katana/entities/season.dart';
 import 'package:katana/errors/error.dart';
 import 'package:katana/models/catalogue_model.dart';
 import 'package:katana/models/episode_moidel.dart';
