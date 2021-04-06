@@ -1,9 +1,11 @@
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
+import 'package:katana/entities/episode.dart';
 import 'package:katana/entities/season.dart';
 import 'package:katana/entities/serie.dart';
 import 'package:katana/setup/get_it.dart';
@@ -28,7 +30,7 @@ class SeriePage extends StatelessWidget {
     return ConstrainedBox(
       constraints: BoxConstraints(
         minHeight: MediaQuery.of(context).size.height / 2,
-        maxHeight: MediaQuery.of(context).size.height * 3 / 4,
+        maxHeight: MediaQuery.of(context).size.height * 90 / 100,
       ),
       child: NotificationListener<OverscrollIndicatorNotification>(
         onNotification: (notification) {
@@ -243,21 +245,22 @@ class SeriePage extends StatelessWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      Text(
-                                        seasons[index].title,
-                                        textAlign: TextAlign.end,
+                                      Container(
+                                        padding: EdgeInsets.all(5.0),
+                                        child: Text(
+                                          seasons[index].title,
+                                          textAlign: TextAlign.end,
+                                        ),
                                       ),
                                       Container(
                                         height: 200,
-                                        child: ListView.separated(
+                                        child: ListView.builder(
                                           scrollDirection: Axis.horizontal,
+                                          reverse: true,
                                           itemBuilder: (_, _index) =>
-                                              Image.network(seasons[index]
-                                                  .episodes[_index]
-                                                  .image),
-                                          separatorBuilder: (_, __) => SizedBox(
-                                            width: 10,
-                                          ),
+                                              EpisodeView(
+                                                  episode: seasons[index]
+                                                      .episodes[_index]),
                                           itemCount:
                                               seasons[index].episodes.length,
                                         ),
@@ -289,6 +292,64 @@ class SeriePage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class EpisodeView extends StatelessWidget {
+  final Episode episode;
+
+  const EpisodeView({
+    Key key,
+    @required this.episode,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.all(5.0),
+      color: Colors.black,
+      child: Stack(
+        children: [
+          Opacity(
+            opacity: 0.2,
+            child: Image.network(episode.image),
+          ),
+          Positioned.fill(
+              child: IconButton(
+            iconSize: 40,
+            icon: Icon(CupertinoIcons.play_fill),
+            onPressed: () => null,
+          )),
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: SizedBox(
+                width: 30,
+                height: 30,
+                child: IconButton(
+                  padding: EdgeInsets.only(left: 5.0),
+                  icon: Icon(
+                    CupertinoIcons.cloud_download,
+                  ),
+                  onPressed: () => null,
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+              child: Align(
+            alignment: Alignment.bottomRight,
+            child: Container(
+              margin: EdgeInsets.only(left: 35, right: 5.0),
+              child: Text(
+                episode.title,
+                textDirection: TextDirection.rtl,
+              ),
+            ),
+          ))
+        ],
       ),
     );
   }
