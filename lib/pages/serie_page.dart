@@ -1,8 +1,10 @@
 import 'dart:ui';
 
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/episode.dart';
@@ -46,25 +48,9 @@ class SeriePageState extends State<SeriePage> {
     chewieController = ChewieController(
       videoPlayerController: videoPlayerController,
       autoPlay: true,
-      customControls: Stack(
-        fit: StackFit.expand,
-        children: [
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Row(
-              children: [
-                IconButton(
-                    icon: Icon(CupertinoIcons.play),
-                    onPressed: () => chewieController.toggleFullScreen()),
-                IconButton(
-                    icon: Icon(CupertinoIcons.stop),
-                    onPressed: () => chewieController.toggleFullScreen()),
-              ],
-            ),
-          )
-        ],
-      ),
+      customControls: PlayerControls(controller: chewieController),
     );
+
     setState(() => playerLoading = false);
   }
 
@@ -162,6 +148,47 @@ class SeriePageState extends State<SeriePage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class PlayerControls extends StatefulWidget {
+  final ChewieController controller;
+
+  const PlayerControls({Key key, this.controller}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() => PlayerControlsState();
+}
+
+class PlayerControlsState extends State<PlayerControls> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: ProgressBar(
+            progress: widget.controller.videoPlayerController.value.position,
+            //buffered: widget.controller.videoPlayerController.value.,
+            total: widget.controller.videoPlayerController.value.duration,
+            progressBarColor: Colors.red,
+            baseBarColor: Colors.white.withOpacity(0.24),
+            bufferedBarColor: Colors.white.withOpacity(0.24),
+            thumbColor: Colors.white,
+            barHeight: 3.0,
+            thumbRadius: 5.0,
+            timeLabelLocation: TimeLabelLocation.sides,
+            onSeek: (duration) => widget.controller.seekTo(duration),
+          ),
+        )
+      ],
     );
   }
 }
