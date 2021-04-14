@@ -13,10 +13,11 @@ void loadPage(BuildContext context, Widget child) {
   showModalBottomSheet(
     isScrollControlled: true,
     context: context,
-    shape: OutlineInputBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-        borderSide: BorderSide(style: BorderStyle.none)),
-    clipBehavior: Clip.hardEdge,
+    //shape: OutlineInputBorder(
+    //    borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+    //    borderSide: BorderSide(style: BorderStyle.none)),
+    //clipBehavior: Clip.hardEdge,
+    backgroundColor: Colors.transparent,
     builder: (_) => child,
   );
 

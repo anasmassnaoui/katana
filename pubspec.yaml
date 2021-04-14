@@ -32,12 +32,12 @@ dependencies:
   dartz: ^0.9.2
   dio: ^3.0.10
   flutter_bloc: ^6.1.2
-  chewie: ^0.12.2
-  video_player: ^1.0.1
   interactive_webview: ^0.1.2
   html: ^0.14.0+4
   get_it: ^5.0.6
   flutter_user_agent: ^1.2.2
+  video_player: ^2.1.1
+  chewie: ^1.0.0
 
 dev_dependencies:
   flutter_test:

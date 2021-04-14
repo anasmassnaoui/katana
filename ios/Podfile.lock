@@ -33,7 +33,7 @@ SPEC CHECKSUMS:
   flutter_user_agent: 27c45d034dc31b80948d29998cea52cd3a7bf936
   interactive_webview: 645deb8ecb0f8564ca2017e691338854c5d6a061
   video_player: 9cc823b1d9da7e8427ee591e8438bfbcde500e6e
-  wakelock: bfc7955c418d0db797614075aabbc58a39ab5107
+  wakelock: b0843b2479edbf6504d8d262c2959446f35373aa
 
 PODFILE CHECKSUM: aafe91acc616949ddb318b77800a7f51bffa2a4c
 

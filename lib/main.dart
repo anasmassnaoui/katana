@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:katana/pages/home_page.dart';
 import 'package:katana/setup/get_it.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setup();
-  runApp(MyApp());
+  //runApp(MyApp());
+  await SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  runApp(App());
 }
 
-class MyApp extends StatelessWidget {
+class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
