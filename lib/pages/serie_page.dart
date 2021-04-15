@@ -43,15 +43,24 @@ class SeriePageState extends State<SeriePage> {
       playerLoading = true;
     });
     videoPlayerController = VideoPlayerController.network(
-        'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4');
+        'https://o8-fl3-s-krrb.vidstream.online/dl/dd17868796512efeClu6HDr-2h4WGsi1i.0uCRyF8BSI8GLVuMoUT20Q__.ZW9iNHVjUnJ6bUZVeHVWVFphbkZYZEo3d0dTUHFtZ29qS0VyTVhydndQK2ZOS2FqWTRkYzgxYitBYVp3MGxqd3o1SlB6a2E4dnVDb2xTcmdjT3gvaGFZTkt5bzVzTEV1UnNEZGlHRzNGUG5VYVI2MHZYbTZldFVyZmtRT2NwU1hQYVIwUlk1dVNiWmVERjVhTEs2dWNUYzdNUklLNFRkNHNWdTY2bkFINDBHaHM5d0lXekNWNmYwaTdlbDh6NVRmUGVUYlM5d2oxblIvUlFBblZVWThwRjRTWDB6bkRWeGoxUnFiTTBmZGNWd0FRQm03NFdZdmtnZEY2VkdmalJTMElDZklQUlpqMG5sSkUzamV6UTdJTldtMTROOVoyUlY0OWdITHBhZDI2VGNCQUpHaXhCcTRGRlFEdm0xL3JiWE80Y0J0dFl1NXJoTmJpUjBqcFpqajN3ZFk4dDlqTHBiTTQwUXY1VkJQSXhjVlFWUzJUbkltdTloZlptSkNtZTRHVGJvaXB5eXVReVRUNXRkUUY5VnNHTHlQb0tQS2pFRisxdWczNEljMEpEWHI_');
     await videoPlayerController.initialize();
     chewieController = ChewieController(
       videoPlayerController: videoPlayerController,
       autoPlay: true,
-      customControls: PlayerControls(controller: chewieController),
+      customControls: PlayerControls(
+          chewieController: chewieController,
+          videoPlayerController: videoPlayerController),
     );
 
     setState(() => playerLoading = false);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    videoPlayerController.dispose();
+    chewieController.dispose();
   }
 
   @override
@@ -153,9 +162,12 @@ class SeriePageState extends State<SeriePage> {
 }
 
 class PlayerControls extends StatefulWidget {
-  final ChewieController controller;
+  final ChewieController chewieController;
+  final VideoPlayerController videoPlayerController;
 
-  const PlayerControls({Key key, this.controller}) : super(key: key);
+  const PlayerControls(
+      {Key key, this.chewieController, this.videoPlayerController})
+      : super(key: key);
 
   @override
   State<StatefulWidget> createState() => PlayerControlsState();
@@ -165,27 +177,107 @@ class PlayerControlsState extends State<PlayerControls> {
   @override
   void initState() {
     super.initState();
+    syncPosition();
+  }
+
+  void syncPosition() =>
+      widget.videoPlayerController.addListener(() => setState(() {}));
+
+  void seekTo(Duration duration) async {
+    await widget.videoPlayerController.seekTo(duration);
+    //widget.videoPlayerController.value.
+    //syncPosition();
   }
 
   @override
   Widget build(BuildContext context) {
+    print(widget.videoPlayerController.value.duration);
+    print(widget.videoPlayerController.value.position);
+    print(widget.videoPlayerController.hasListeners);
+
     return Stack(
       fit: StackFit.expand,
       children: [
+        Container(
+          color: Colors.black.withOpacity(0.5),
+        ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: Row(
+            children: [
+              Spacer(),
+              GestureDetector(
+                child: Icon(
+                  Icons.menu,
+                  size: 30,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Align(
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              IconButton(
+                iconSize: 40,
+                icon: Icon(Icons.navigate_before),
+                onPressed: () => null,
+              ),
+              IconButton(
+                iconSize: 40,
+                icon: Icon(Icons.play_arrow),
+                onPressed: () => null,
+              ),
+              IconButton(
+                iconSize: 40,
+                icon: Icon(Icons.navigate_next),
+                onPressed: () => null,
+              ),
+            ],
+          ),
+        ),
         Align(
           alignment: Alignment.bottomCenter,
-          child: ProgressBar(
-            progress: widget.controller.videoPlayerController.value.position,
-            //buffered: widget.controller.videoPlayerController.value.,
-            total: widget.controller.videoPlayerController.value.duration,
-            progressBarColor: Colors.red,
-            baseBarColor: Colors.white.withOpacity(0.24),
-            bufferedBarColor: Colors.white.withOpacity(0.24),
-            thumbColor: Colors.white,
-            barHeight: 3.0,
-            thumbRadius: 5.0,
-            timeLabelLocation: TimeLabelLocation.sides,
-            onSeek: (duration) => widget.controller.seekTo(duration),
+          child: Wrap(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 6.0),
+                child: Row(
+                  children: [
+                    Spacer(),
+                    GestureDetector(
+                      child: Icon(
+                        Icons.fullscreen,
+                        size: 30,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 10.0,
+                  right: 10.0,
+                  bottom: 10.0,
+                  top: 5.0,
+                ),
+                child: ProgressBar(
+                  progress: widget.videoPlayerController.value.position,
+                  //buffered: widget.videoPlayerController.value.duration,
+                  total: widget.videoPlayerController.value.position,
+                  progressBarColor: Colors.red,
+                  baseBarColor: Colors.white.withOpacity(0.24),
+                  bufferedBarColor: Colors.white.withOpacity(0.24),
+                  thumbColor: Colors.red,
+                  barHeight: 3.0,
+                  thumbRadius: 8.0,
+                  timeLabelLocation: TimeLabelLocation.sides,
+                  onSeek: (duration) => seekTo(duration),
+                ),
+              ),
+            ],
           ),
         )
       ],
