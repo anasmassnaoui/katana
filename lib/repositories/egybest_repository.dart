@@ -3,6 +3,7 @@ import 'package:katana/entities/catalogue.dart';
 import 'package:katana/errors/error.dart';
 import 'package:katana/datasource/egybest_data_source.dart';
 import 'package:katana/models/movie_model.dart';
+import 'package:katana/models/quality.dart';
 import 'package:katana/models/season_model.dart';
 import 'package:katana/models/serie_model.dart';
 
@@ -49,5 +50,13 @@ class EgybestRipository {
     } on ServerException {
       return Left(ServerError());
     }
+  }
+
+  Future<List<Quality>> getVideoQualities(String link) {
+    return egybestDatasource.getVideoQualities(link);
+  }
+
+  Future<String> getDirectLink(String link) {
+    return egybestDatasource.getDirectLink(link);
   }
 }

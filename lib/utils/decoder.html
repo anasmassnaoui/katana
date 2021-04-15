@@ -1,0 +1,136 @@
+<html>
+  <head></head>
+  <body>
+    <script>
+      const nativeCommunicator =
+        typeof webkit !== "undefined"
+          ? webkit.messageHandlers.native
+          : window.native;
+      const getValidation = (data) => {
+
+        let valid = {};
+
+        let link = data.match(/\'\/\'\+.*?\)/)[0];
+        let tokens = link.split("+")[1].split("(");
+        let func = data.match(new RegExp(`function ${tokens[0]}.*?\\}`))[0];
+        let vr = tokens[1].split("[")[0];
+
+        vr = data.match(new RegExp(`var ${vr}=\\[.*?\\],.*?=`))[0];
+        vr = vr.substr(0, vr.lastIndexOf("]") + 1);
+
+        let c = vr.split("[")[1];
+        c = data.match(new RegExp(`${c}.*?]`))[0];
+
+        ads = c + "\n" + vr + ";\n" + func + "\n" + link;
+
+        valid["adsLink"] = eval(ads).replace("/", "");
+
+        for (let i = 0; i < 2; i++) {
+          try {
+            let url = data.match(/url.*?,/g)[i].slice(5, -1);
+            token = url.split("+").pop();
+
+            let vardata = data.match(
+              new RegExp(
+                `\\(${token}\\).*${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+                "g"
+              )
+            )[0];
+
+            vardata = vardata.split("var").pop().split("=")[0].match(/\w+/g);
+
+            pd = data
+              .match(new RegExp(`${vardata}\\['d.*?=.*?[,|;]`, "g"))
+              .pop()
+              .replace(",", ";");
+
+            pd = eval(`var ${vardata} = {data: {}};` + pd + `${vardata}`);
+
+            valid["postData"] = pd;
+
+            let y = data
+              .match(new RegExp(`${token}\\+=.*?\\[`, "g"))[0]
+              .slice(0, -1)
+              .split("=")[1];
+            let yarr = data
+              .match(new RegExp(`${y}\\[.*?[,|;]`, "g"))
+              .map((e) => e.replace(",", ";"))
+              .slice(0, -1);
+
+            let x = data
+              .match(new RegExp(`${token}\\).*${token}\\+=`, "gi"))[0]
+              .split("[");
+            x = x[x.findIndex((e) => e.includes("'fo'")) - 1]
+              .match(/\w+/g)
+              .pop();
+            let xarr = data
+              .match(new RegExp(`${x}\\[.*?[,|;]`, "g"))
+              .map((e) => e.replace(",", ";"))
+              .slice(0, -1);
+
+            y = eval(`let ${y} = [];` + yarr.join("") + `${y}`);
+            x = eval(`let ${x} = [];` + xarr.join("") + `${x}`);
+
+            token = "";
+            x.forEach((e) => {
+              token += y[e] || "";
+            });
+            valid["postLink"] = "api?call=" + token;
+
+            break;
+          } catch (e) {
+            //console.log(e);
+          }
+        }
+        nativeCommunicator.postMessage(JSON.stringify(valid));
+      };
+      const getVideoValidation = (data) => {
+        let init = data.match(/\{.*\$\('/)[0].slice(1, -3);
+
+        const end = data.replace(init, "");
+
+        const vars = end
+          .match(/var .*?(;|,)/g)
+          .map((e) => e.replace(",", ";"))
+          .filter((e) => {
+            try {
+              eval(e);
+            } catch (f) {
+              if (f.name == "SyntaxError") return false;
+            }
+            return true;
+          });
+
+        const linkIndex = vars.findIndex((e) => e.includes("'/'"));
+        let link = data.match(/'\/'.*?(,|;)/)[0].slice(0, -1);
+
+        init = init.slice(0, -1) + ";";
+
+        for (let i = 0; i < linkIndex; i++) init += vars[i];
+
+        link = eval(init + link);
+        let verifyIndex = vars.findIndex((e) => e.includes("=window"));
+        let verify = vars[verifyIndex].slice(vars[verifyIndex].search("=") + 1);
+
+        for (let i = linkIndex; i < verifyIndex; i++) init += vars[i];
+
+        let key = verify.replace(";", "").split("+").slice(-1)[0];
+        let acc = end.match(new RegExp(`if\\(!${key}\\).*\\+${key}`, "g"))[0];
+
+        acc = eval(init + acc + ";" + verify);
+
+        let pdata = end.match(/'data'.*?(:'ok'|'no')/g)[0].split("'")[3];
+
+        nativeCommunicator.postMessage(
+          JSON.stringify({
+            adsLink: link.slice(1),
+            postData: {
+              data: { [pdata]: "ok" },
+            },
+            postLink: acc.slice(1),
+          })
+        );
+      };
+    </script>
+  </body>
+</html>

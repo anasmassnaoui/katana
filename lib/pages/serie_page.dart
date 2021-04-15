@@ -1,6 +1,6 @@
+import 'dart:ffi';
 import 'dart:ui';
 
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,11 +10,14 @@ import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/episode.dart';
 import 'package:katana/entities/season.dart';
 import 'package:katana/entities/serie.dart';
+import 'package:katana/models/quality.dart';
+import 'package:katana/repositories/egybest_repository.dart';
 import 'package:katana/setup/get_it.dart';
 import 'package:katana/utils/client.dart';
+import 'package:katana/utils/selector.dart';
 import 'package:katana/widgets/loading.dart';
 import 'package:video_player/video_player.dart';
-
+import 'package:seekbar/seekbar.dart';
 import '../blocs/catalogue_bloc.dart';
 
 class SeriePage extends StatefulWidget {
@@ -36,30 +39,84 @@ class SeriePageState extends State<SeriePage> {
   bool playerMode = false;
   bool playerLoading = false;
 
-  void onPlay(link) async {
-    print("link");
+  void onPlay(int currentSeason, int currentEpisode) async {
+    String link = seasons[currentSeason].episodes[currentEpisode].link;
+    final qualities = await getIt<EgybestRipository>().getVideoQualities(link);
+    final title =
+        '${seasons[currentSeason].title} ${seasons[currentSeason].episodes[currentEpisode].title}';
+    play(title, qualities,
+        onNext: currentSeason < seasons.length &&
+                currentEpisode < seasons[currentSeason].episodes.length
+            ? () {
+                if (currentEpisode < seasons[currentSeason].episodes.length)
+                  currentEpisode++;
+                else if (currentSeason < seasons.length) {
+                  currentEpisode = 0;
+                  currentSeason++;
+                }
+                onPlay(currentSeason, currentEpisode);
+              }
+            : null,
+        onPrev: currentSeason > 0 || currentEpisode > 0
+            ? () {
+                if (currentEpisode > 0)
+                  currentEpisode--;
+                else if (currentSeason > 0) {
+                  currentEpisode = 0;
+                  currentSeason--;
+                }
+                onPlay(currentSeason, currentEpisode);
+              }
+            : null);
+  }
+
+  void play(String title, List<Quality> qualities,
+      {Quality quality,
+      Duration startAt,
+      void Function() onNext,
+      void Function() onPrev}) async {
     setState(() {
       playerMode = true;
       playerLoading = true;
     });
-    videoPlayerController = VideoPlayerController.network(
-        'https://o8-fl3-s-krrb.vidstream.online/dl/dd17868796512efeClu6HDr-2h4WGsi1i.0uCRyF8BSI8GLVuMoUT20Q__.ZW9iNHVjUnJ6bUZVeHVWVFphbkZYZEo3d0dTUHFtZ29qS0VyTVhydndQK2ZOS2FqWTRkYzgxYitBYVp3MGxqd3o1SlB6a2E4dnVDb2xTcmdjT3gvaGFZTkt5bzVzTEV1UnNEZGlHRzNGUG5VYVI2MHZYbTZldFVyZmtRT2NwU1hQYVIwUlk1dVNiWmVERjVhTEs2dWNUYzdNUklLNFRkNHNWdTY2bkFINDBHaHM5d0lXekNWNmYwaTdlbDh6NVRmUGVUYlM5d2oxblIvUlFBblZVWThwRjRTWDB6bkRWeGoxUnFiTTBmZGNWd0FRQm03NFdZdmtnZEY2VkdmalJTMElDZklQUlpqMG5sSkUzamV6UTdJTldtMTROOVoyUlY0OWdITHBhZDI2VGNCQUpHaXhCcTRGRlFEdm0xL3JiWE80Y0J0dFl1NXJoTmJpUjBqcFpqajN3ZFk4dDlqTHBiTTQwUXY1VkJQSXhjVlFWUzJUbkltdTloZlptSkNtZTRHVGJvaXB5eXVReVRUNXRkUUY5VnNHTHlQb0tQS2pFRisxdWczNEljMEpEWHI_');
+    final directLink = await getIt<EgybestRipository>()
+        .getDirectLink(quality != null ? quality.link : qualities.last.link);
+    if (videoPlayerController != null) await disposePlayer();
+    videoPlayerController = VideoPlayerController.network(directLink);
     await videoPlayerController.initialize();
     chewieController = ChewieController(
       videoPlayerController: videoPlayerController,
       autoPlay: true,
+      startAt: startAt,
       customControls: PlayerControls(
-          chewieController: chewieController,
-          videoPlayerController: videoPlayerController),
+        qualities: qualities,
+        title: title,
+        videoPlayerController: videoPlayerController,
+        onTogglePause: () => chewieController.togglePause(),
+        onToggleFullScreen: () => chewieController.toggleFullScreen(),
+        onNext: onNext,
+        onPrev: onPrev,
+        onChangeQuality: (quality, startAt) => play(
+          title,
+          qualities,
+          quality: quality,
+          startAt: startAt,
+          onNext: onNext,
+          onPrev: onPrev,
+        ),
+      ),
     );
-
     setState(() => playerLoading = false);
   }
 
   @override
   void dispose() {
     super.dispose();
-    videoPlayerController.dispose();
+    disposePlayer();
+  }
+
+  Future<void> disposePlayer() async {
+    await videoPlayerController.dispose();
     chewieController.dispose();
   }
 
@@ -129,7 +186,13 @@ class SeriePageState extends State<SeriePage> {
                                       if (state is SeasonState &&
                                           currentSeason++ <
                                               serie.seasons.length)
-                                        seasons.add(state.season);
+                                        seasons.add(Season(
+                                          title:
+                                              serie.seasons[currentSeason - 1]
+                                                  ['title'],
+                                          link: state.season.link,
+                                          episodes: state.season.episodes,
+                                        ));
                                       return LoadSeasons(
                                         loadedSeasons: seasons,
                                         currentSeason: currentSeason,
@@ -162,122 +225,212 @@ class SeriePageState extends State<SeriePage> {
 }
 
 class PlayerControls extends StatefulWidget {
-  final ChewieController chewieController;
   final VideoPlayerController videoPlayerController;
+  final void Function() onTogglePause;
+  final void Function() onToggleFullScreen;
+  final void Function(Quality, Duration) onChangeQuality;
+  final void Function() onNext;
+  final void Function() onPrev;
+  final String title;
+  final List<Quality> qualities;
 
-  const PlayerControls(
-      {Key key, this.chewieController, this.videoPlayerController})
-      : super(key: key);
+  const PlayerControls({
+    Key key,
+    this.videoPlayerController,
+    this.onTogglePause,
+    this.onToggleFullScreen,
+    this.title,
+    this.qualities,
+    this.onChangeQuality,
+    this.onNext,
+    this.onPrev,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => PlayerControlsState();
 }
 
 class PlayerControlsState extends State<PlayerControls> {
+  bool pause;
+  bool showControls = false;
+
   @override
   void initState() {
     super.initState();
-    syncPosition();
+    pause = getPause();
+    widget.videoPlayerController.addListener(updateState);
   }
 
-  void syncPosition() =>
-      widget.videoPlayerController.addListener(() => setState(() {}));
+  bool getPause() => !widget.videoPlayerController.value.isPlaying;
+
+  void updateState() => setState(() => pause = getPause());
+
+  void toggleControls() => setState(() => showControls = !showControls);
 
   void seekTo(Duration duration) async {
     await widget.videoPlayerController.seekTo(duration);
-    //widget.videoPlayerController.value.
-    //syncPosition();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    widget.videoPlayerController.removeListener(updateState);
+  }
+
+  String duratioToString(Duration duration) {
+    String twoDigits(int n) {
+      if (n >= 10) return "$n";
+      return "0$n";
+    }
+
+    String twoDigitMinutes =
+        twoDigits(duration.inMinutes.remainder(Duration.minutesPerHour) as int);
+    String twoDigitSeconds = twoDigits(
+        duration.inSeconds.remainder(Duration.secondsPerMinute) as int);
+    return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  void onChangeQuality() async {
+    final choice = await selectChoice(
+      context,
+      Future.value(widget.qualities.map((e) => e.quality).toList()),
+    );
+    if (choice != null)
+      widget.onChangeQuality(
+        widget.qualities.firstWhere((e) => e.quality == choice),
+        widget.videoPlayerController.value.position,
+      );
   }
 
   @override
   Widget build(BuildContext context) {
-    print(widget.videoPlayerController.value.duration);
-    print(widget.videoPlayerController.value.position);
-    print(widget.videoPlayerController.hasListeners);
-
     return Stack(
       fit: StackFit.expand,
       children: [
-        Container(
-          color: Colors.black.withOpacity(0.5),
-        ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: Row(
-            children: [
-              Spacer(),
-              GestureDetector(
-                child: Icon(
-                  Icons.menu,
-                  size: 30,
-                ),
-              ),
-            ],
+        GestureDetector(
+          onTap: () => toggleControls(),
+          child: Container(
+            color: Colors.black.withOpacity(showControls ? 0.5 : 0.0),
           ),
         ),
-        Align(
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                iconSize: 40,
-                icon: Icon(Icons.navigate_before),
-                onPressed: () => null,
+        Visibility(
+          visible: showControls,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 6.0,
+                vertical: 6.0,
               ),
-              IconButton(
-                iconSize: 40,
-                icon: Icon(Icons.play_arrow),
-                onPressed: () => null,
-              ),
-              IconButton(
-                iconSize: 40,
-                icon: Icon(Icons.navigate_next),
-                onPressed: () => null,
-              ),
-            ],
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Wrap(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 6.0),
-                child: Row(
-                  children: [
-                    Spacer(),
-                    GestureDetector(
-                      child: Icon(
-                        Icons.fullscreen,
-                        size: 30,
-                      ),
+              child: Row(
+                children: [
+                  Expanded(child: Text(widget.title)),
+                  GestureDetector(
+                    onTap: () => onChangeQuality(),
+                    child: Icon(
+                      Icons.more_vert,
+                      size: 30,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.only(
-                  left: 10.0,
-                  right: 10.0,
-                  bottom: 10.0,
-                  top: 5.0,
+            ),
+          ),
+        ),
+        Visibility(
+          visible: showControls,
+          child: Align(
+            alignment: Alignment.center,
+            child: Row(
+              children: [
+                Spacer(),
+                Opacity(
+                  opacity: widget.onPrev != null ? 1 : 0,
+                  child: IconButton(
+                    iconSize: 40,
+                    icon: Icon(Icons.skip_previous),
+                    onPressed: widget.onPrev,
+                  ),
                 ),
-                child: ProgressBar(
-                  progress: widget.videoPlayerController.value.position,
-                  //buffered: widget.videoPlayerController.value.duration,
-                  total: widget.videoPlayerController.value.position,
-                  progressBarColor: Colors.red,
-                  baseBarColor: Colors.white.withOpacity(0.24),
-                  bufferedBarColor: Colors.white.withOpacity(0.24),
-                  thumbColor: Colors.red,
-                  barHeight: 3.0,
-                  thumbRadius: 8.0,
-                  timeLabelLocation: TimeLabelLocation.sides,
-                  onSeek: (duration) => seekTo(duration),
+                IconButton(
+                  iconSize: 40,
+                  icon: Icon(pause ? Icons.play_arrow : Icons.pause),
+                  onPressed: () => widget.onTogglePause(),
                 ),
-              ),
-            ],
+                Opacity(
+                  opacity: widget.onNext != null ? 1 : 0,
+                  child: IconButton(
+                    iconSize: 40,
+                    icon: Icon(Icons.skip_next),
+                    onPressed: widget.onNext,
+                  ),
+                ),
+                Spacer(),
+              ],
+            ),
+          ),
+        ),
+        Visibility(
+          visible: showControls,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Wrap(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 6.0),
+                  child: Row(
+                    children: [
+                      Spacer(),
+                      GestureDetector(
+                        onTap: () => widget.onToggleFullScreen(),
+                        child: Icon(
+                          Icons.fullscreen,
+                          size: 30,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: 10.0,
+                    right: 10.0,
+                    bottom: 10.0,
+                    top: 5.0,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        duratioToString(
+                          widget.videoPlayerController.value.position,
+                        ),
+                      ),
+                      Expanded(
+                        child: SeekBar(
+                          value: widget.videoPlayerController.value.position
+                                  .inMilliseconds /
+                              widget.videoPlayerController.value.duration
+                                  .inMilliseconds,
+                          onProgressChanged: (value) {
+                            Duration duration = Duration(
+                                milliseconds: (value *
+                                        widget.videoPlayerController.value
+                                            .duration.inMilliseconds)
+                                    .toInt());
+                            seekTo(duration);
+                          },
+                        ),
+                      ),
+                      Text(
+                        duratioToString(
+                          widget.videoPlayerController.value.duration,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         )
       ],
@@ -330,7 +483,7 @@ class LoadSeasons extends StatefulWidget {
   final int currentSeason;
   final List<Map<String, dynamic>> seasonsSchema;
   final ScrollController controller;
-  final void Function(String) onPlay;
+  final void Function(int, int) onPlay;
 
   const LoadSeasons({
     Key key,
@@ -406,7 +559,7 @@ class LoadSeasonsState extends State<LoadSeasons> {
                   reverse: true,
                   itemBuilder: (_, _index) => EpisodeView(
                     episode: widget.loadedSeasons[index].episodes[_index],
-                    onPlay: widget.onPlay,
+                    onPlay: (_) => widget.onPlay(index, _index),
                   ),
                   itemCount: widget.loadedSeasons[index].episodes.length,
                 ),

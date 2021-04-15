@@ -41,4 +41,8 @@ class Client {
   Future<Response> get(String path) {
     return dio.get(path);
   }
+
+  Future<Response> post(String path, {Map<String, dynamic> data}) {
+    return dio.post(path, data: data);
+  }
 }

@@ -1,9 +1,12 @@
+import 'package:flutter/services.dart';
 import 'package:html/parser.dart';
+import 'package:interactive_webview/interactive_webview.dart';
 import 'package:katana/entities/cover.dart';
 import 'package:katana/errors/error.dart';
 import 'package:katana/models/catalogue_model.dart';
 import 'package:katana/models/episode_moidel.dart';
 import 'package:katana/models/movie_model.dart';
+import 'package:katana/models/quality.dart';
 import 'package:katana/models/season_model.dart';
 import 'package:katana/models/serie_model.dart';
 import 'package:katana/utils/client.dart';
@@ -22,14 +25,30 @@ abstract class EgybestInterface {
   Future<MovieModel> getMovie(String link);
   Future<SerieModel> getSerie(String link);
   Future<SeasonModel> getSeason(String link);
+  Future<List<Quality>> getVideoQualities(String link);
+  Future<String> getDirectLink(String link);
 }
 
 class EgybestDatasource extends EgybestInterface {
   final Client client;
+  final InteractiveWebView webView;
 
   EgybestDatasource({
     @required this.client,
-  });
+    @required this.webView,
+  }) {
+    _setupWebView();
+  }
+
+  void _setupWebView() async {
+    webView.loadHTML(
+      await rootBundle.loadString(
+        "lib/utils/decoder.html",
+        cache: false,
+      ),
+      baseUrl: 'http://127.0.0.1/',
+    );
+  }
 
   String formatFilter(List<Map<String, String>> filters) {
     String filterFormat = '';
@@ -187,6 +206,79 @@ class EgybestDatasource extends EgybestInterface {
       });
     } catch (e) {
       throw ServerException();
+    }
+  }
+
+  @override
+  Future<List<Quality>> getVideoQualities(String link) async {
+    try {
+      final res = await client.get('$link&output_format=json');
+      final parser = parse(res.data['html']);
+      return parser
+          .getElementsByClassName('dls_table')[0]
+          .children[1]
+          .getElementsByTagName('tr')
+          .map((element) {
+        final tds = element.getElementsByTagName('td');
+        return Quality(tds[1].text.split('<i')[0],
+            tds[3].children[0].attributes['data-url']);
+      }).toList();
+    } catch (e) {
+      throw ServerException();
+    }
+  }
+
+  Future<Map<dynamic, dynamic>> _callJsFunction(
+    String function,
+    String data,
+  ) async {
+    webView.evalJavascript('$function("$data")');
+    return (await webView.didReceiveMessage.first).data;
+  }
+
+  Future<void> _validate(String script, {data}) async {
+    if (data == null) data = await _callJsFunction('getValidation', script);
+    await client.get('/${data["adsLink"]}').catchError((e) {});
+    await Future.delayed(Duration(microseconds: 1000), () async {
+      return await client
+          .post('/${data["postLink"]}',
+              data: Map<String, String>.from(data["postData"]['data']))
+          .catchError((e) {});
+    });
+  }
+
+  Future<void> _validateVideo(String script, {data}) async {
+    if (data == null)
+      data = await _callJsFunction('getVideoValidation', script);
+    await client.get('/${data["adsLink"]}').catchError((e) {});
+    await Future.delayed(const Duration(milliseconds: 1000), () async {
+      return await client
+          .post('/${data["postLink"]}',
+              data: Map<String, String>.from(data["postData"]['data']))
+          .catchError((e) {});
+    });
+  }
+
+  @override
+  Future<String> getDirectLink(String link) async {
+    final res = await client.get('$link');
+    final parser = parse(res.data);
+    final download = parser.getElementsByClassName('bigbutton');
+    if (download.isEmpty) {
+      print("ERROR");
+      await _validate(parser.getElementsByTagName('script')[2].innerHtml);
+      return getDirectLink(link);
+    }
+    final downloadLink = download[0].attributes['href'];
+    if (downloadLink == null) {
+      await _validateVideo(parser.getElementsByTagName('script')[1].innerHtml);
+      print("stage two done");
+      return getDirectLink(res.redirects.isNotEmpty
+          ? res.redirects.first.location.toString()
+          : link);
+    } else {
+      print("stage three done");
+      return downloadLink;
     }
   }
 }

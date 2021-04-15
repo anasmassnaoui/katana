@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_user_agent/flutter_user_agent.dart';
 import 'package:get_it/get_it.dart';
+import 'package:interactive_webview/interactive_webview.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/datasource/egybest_data_source.dart';
 import 'package:katana/repositories/egybest_repository.dart';
@@ -20,7 +21,10 @@ Future<void> setup() async {
   );
   // register egybest data source
   getIt.registerLazySingleton(
-    () => EgybestDatasource(client: getIt()),
+    () => EgybestDatasource(
+      client: getIt(),
+      webView: getIt(),
+    ),
   );
   // register Client
   final String userAgent = await FlutterUserAgent.getPropertyAsync('userAgent');
@@ -33,4 +37,6 @@ Future<void> setup() async {
 
   // register Dio
   getIt.registerLazySingleton(() => Dio());
+  // register interactive webview
+  getIt.registerLazySingleton(() => InteractiveWebView());
 }
