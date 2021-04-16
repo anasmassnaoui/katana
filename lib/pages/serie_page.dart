@@ -1,10 +1,9 @@
-import 'dart:ffi';
 import 'dart:ui';
 
-import 'package:chewie/chewie.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/episode.dart';
@@ -31,190 +30,163 @@ class SeriePage extends StatefulWidget {
 }
 
 class SeriePageState extends State<SeriePage> {
-  ScrollController controller = ScrollController();
-  int currentSeason = 0;
+  //ScrollController controller = ScrollController();
+  int nextSeason = 0;
+  int currentSeason;
+  int currentEpisode;
+  bool fullScreen = false;
   List<Season> seasons = [];
-  VideoPlayerController videoPlayerController;
-  ChewieController chewieController;
   bool playerMode = false;
-  bool playerLoading = false;
 
-  void onPlay(int currentSeason, int currentEpisode) async {
-    String link = seasons[currentSeason].episodes[currentEpisode].link;
-    final qualities = await getIt<EgybestRipository>().getVideoQualities(link);
-    final title =
-        '${seasons[currentSeason].title} ${seasons[currentSeason].episodes[currentEpisode].title}';
-    play(title, qualities,
-        onNext: currentSeason < seasons.length &&
-                currentEpisode < seasons[currentSeason].episodes.length
-            ? () {
-                if (currentEpisode < seasons[currentSeason].episodes.length)
-                  currentEpisode++;
-                else if (currentSeason < seasons.length) {
-                  currentEpisode = 0;
-                  currentSeason++;
-                }
-                onPlay(currentSeason, currentEpisode);
-              }
-            : null,
-        onPrev: currentSeason > 0 || currentEpisode > 0
-            ? () {
-                if (currentEpisode > 0)
-                  currentEpisode--;
-                else if (currentSeason > 0) {
-                  currentEpisode = 0;
-                  currentSeason--;
-                }
-                onPlay(currentSeason, currentEpisode);
-              }
-            : null);
-  }
-
-  void play(String title, List<Quality> qualities,
-      {Quality quality,
-      Duration startAt,
-      void Function() onNext,
-      void Function() onPrev}) async {
+  void onPlay(int _currentSeason, int _currentEpisode) async {
     setState(() {
+      currentSeason = _currentSeason;
+      currentEpisode = _currentEpisode;
       playerMode = true;
-      playerLoading = true;
     });
-    final directLink = await getIt<EgybestRipository>()
-        .getDirectLink(quality != null ? quality.link : qualities.last.link);
-    if (videoPlayerController != null) await disposePlayer();
-    videoPlayerController = VideoPlayerController.network(directLink);
-    await videoPlayerController.initialize();
-    chewieController = ChewieController(
-      videoPlayerController: videoPlayerController,
-      autoPlay: true,
-      startAt: startAt,
-      customControls: PlayerControls(
-        qualities: qualities,
-        title: title,
-        videoPlayerController: videoPlayerController,
-        onTogglePause: () => chewieController.togglePause(),
-        onToggleFullScreen: () => chewieController.toggleFullScreen(),
-        onNext: onNext,
-        onPrev: onPrev,
-        onChangeQuality: (quality, startAt) => play(
-          title,
-          qualities,
-          quality: quality,
-          startAt: startAt,
-          onNext: onNext,
-          onPrev: onPrev,
-        ),
-      ),
-    );
-    setState(() => playerLoading = false);
+    // String link = seasons[currentSeason].episodes[currentEpisode].link;
+    // final qualities = await getIt<EgybestRipository>().getVideoQualities(link);
+    // final title =
+    //     '${seasons[currentSeason].title} ${seasons[currentSeason].episodes[currentEpisode].title}';
+    // play(title, qualities,
+    //     onNext: currentSeason < seasons.length &&
+    //             currentEpisode < seasons[currentSeason].episodes.length
+    //         ? () {
+    //             if (currentEpisode < seasons[currentSeason].episodes.length)
+    //               currentEpisode++;
+    //             else if (currentSeason < seasons.length) {
+    //               currentEpisode = 0;
+    //               currentSeason++;
+    //             }
+    //             onPlay(currentSeason, currentEpisode);
+    //           }
+    //         : null,
+    //     onPrev: currentSeason > 0 || currentEpisode > 0
+    //         ? () {
+    //             if (currentEpisode > 0)
+    //               currentEpisode--;
+    //             else if (currentSeason > 0) {
+    //               currentEpisode = 0;
+    //               currentSeason--;
+    //             }
+    //             onPlay(currentSeason, currentEpisode);
+    //           }
+    //         : null);
   }
 
   @override
   void dispose() {
     super.dispose();
-    disposePlayer();
+    //disposePlayer();
   }
 
-  Future<void> disposePlayer() async {
-    await videoPlayerController.dispose();
-    chewieController.dispose();
-  }
+  // Future<void> disposePlayer() async {
+  //   await videoPlayerController.dispose();
+  //   chewieController.dispose();
+  // }
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height *
-              (playerMode
-                  ? (1 - 30 / MediaQuery.of(context).size.height)
-                  : 0.8)),
-      child: NotificationListener<OverscrollIndicatorNotification>(
-        onNotification: (notification) {
-          notification.disallowGlow();
-          return true;
-        },
-        child: ClipRRect(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(playerMode ? 0.0 : 30.0),
-          ),
-          child: Container(
-            color: ThemeData.dark().scaffoldBackgroundColor,
-            child: BlocProvider(
-              create: (context) =>
-                  getIt<CatalogueBloc>()..add(SerieEvent(link: widget.link)),
-              child: BlocBuilder<CatalogueBloc, BlocState>(
-                builder: (context, state) {
-                  if (state is SerieState) {
-                    Serie serie = state.serie;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        playerMode
-                            ? SizedBox(
-                                height: 300,
-                                child: playerLoading
-                                    ? Loading()
-                                    : Container(
-                                        color: Colors.black,
-                                        child: Chewie(
-                                          controller: chewieController,
-                                        ),
-                                      ),
-                              )
-                            : SerieView(
-                                image: serie.image,
-                                title: serie.title,
-                                type: serie.type,
-                                seasons: serie.seasons.length,
-                              ),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            controller: controller,
-                            child: Column(
-                              children: [
-                                SerieInfo(
+    return BottomSheet(
+      onClosing: () => null,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        // constraints: BoxConstraints(
+        //   maxHeight: (() {
+        //     if (playerMode)
+        //       return MediaQuery.of(context).size.height - (!fullScreen ? 30 : 0);
+        //     return MediaQuery.of(context).size.height * 0.8;
+        //   })(),
+        // ),
+        initialChildSize: 0.5,
+        minChildSize: 0.2,
+        maxChildSize: 1.0,
+        expand: false,
+        builder: (_, controller) =>
+            NotificationListener<OverscrollIndicatorNotification>(
+          onNotification: (notification) {
+            notification.disallowGlow();
+            return true;
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(playerMode ? 0.0 : 30.0),
+            ),
+            child: Container(
+              color: ThemeData.dark().scaffoldBackgroundColor,
+              child: BlocProvider(
+                create: (context) =>
+                    getIt<CatalogueBloc>()..add(SerieEvent(link: widget.link)),
+                child: BlocBuilder<CatalogueBloc, BlocState>(
+                  builder: (context, state) {
+                    if (state is SerieState) {
+                      Serie serie = state.serie;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          playerMode
+                              ? PlayerWithControls(
+                                  title: 'fffff',
+                                  link: seasons[currentSeason]
+                                      .episodes[currentEpisode]
+                                      .link,
+                                  onFullScreen: (_fullscreen) =>
+                                      setState(() => fullScreen = _fullscreen),
+                                )
+                              : SerieView(
+                                  image: serie.image,
                                   title: serie.title,
-                                  story: serie.story,
+                                  type: serie.type,
+                                  seasons: serie.seasons.length,
                                 ),
-                                BlocProvider(
-                                  create: (context) => getIt<CatalogueBloc>(),
-                                  child: BlocBuilder<CatalogueBloc, BlocState>(
-                                    buildWhen: (previous, current) =>
-                                        current is SeasonState,
-                                    builder: (context, state) {
-                                      if (state is SeasonState &&
-                                          currentSeason++ <
-                                              serie.seasons.length)
-                                        seasons.add(Season(
-                                          title:
-                                              serie.seasons[currentSeason - 1]
-                                                  ['title'],
-                                          link: state.season.link,
-                                          episodes: state.season.episodes,
-                                        ));
-                                      return LoadSeasons(
-                                        loadedSeasons: seasons,
-                                        currentSeason: currentSeason,
-                                        seasonsSchema: serie.seasons,
-                                        controller: controller,
-                                        onPlay: onPlay,
-                                      );
-                                    },
+                          Expanded(
+                            child: SingleChildScrollView(
+                              controller: controller,
+                              child: Column(
+                                children: [
+                                  SerieInfo(
+                                    title: serie.title,
+                                    story: serie.story,
                                   ),
-                                ),
-                              ],
+                                  BlocProvider(
+                                    create: (context) => getIt<CatalogueBloc>(),
+                                    child:
+                                        BlocBuilder<CatalogueBloc, BlocState>(
+                                      buildWhen: (previous, current) =>
+                                          current is SeasonState,
+                                      builder: (context, state) {
+                                        if (state is SeasonState &&
+                                            nextSeason++ < serie.seasons.length)
+                                          seasons.add(Season(
+                                            title: serie.seasons[nextSeason - 1]
+                                                ['title'],
+                                            link: state.season.link,
+                                            episodes: state.season.episodes,
+                                          ));
+                                        return LoadSeasons(
+                                          loadedSeasons: seasons,
+                                          currentSeason: nextSeason,
+                                          seasonsSchema: serie.seasons,
+                                          controller: controller,
+                                          onPlay: onPlay,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      );
+                    }
+                    return Container(
+                      height: MediaQuery.of(context).size.height * 0.5,
+                      child: Loading(),
                     );
-                  }
-                  return Container(
-                    height: MediaQuery.of(context).size.height * 0.5,
-                    child: Loading(),
-                  );
-                },
+                  },
+                ),
               ),
             ),
           ),
@@ -224,57 +196,105 @@ class SeriePageState extends State<SeriePage> {
   }
 }
 
-class PlayerControls extends StatefulWidget {
-  final VideoPlayerController videoPlayerController;
-  final void Function() onTogglePause;
-  final void Function() onToggleFullScreen;
-  final void Function(Quality, Duration) onChangeQuality;
+class PlayerWithControls extends StatefulWidget {
   final void Function() onNext;
   final void Function() onPrev;
+  final void Function(bool) onFullScreen;
   final String title;
-  final List<Quality> qualities;
+  final String link;
 
-  const PlayerControls({
+  const PlayerWithControls({
     Key key,
-    this.videoPlayerController,
-    this.onTogglePause,
-    this.onToggleFullScreen,
     this.title,
-    this.qualities,
-    this.onChangeQuality,
     this.onNext,
     this.onPrev,
+    this.link,
+    this.onFullScreen,
   }) : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => PlayerControlsState();
+  State<StatefulWidget> createState() => PlayerWithControlsState();
 }
 
-class PlayerControlsState extends State<PlayerControls> {
-  bool pause;
-  bool showControls = false;
+class PlayerWithControlsState extends State<PlayerWithControls> {
+  bool showControls = true;
+  bool loading = true;
+  bool fullScreen = false;
+  VideoPlayerController videoPlayerController;
+  List<Quality> qualities;
+  Quality quality;
+
+  @override
+  void didUpdateWidget(covariant PlayerWithControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.link != oldWidget.link) loadVideo().then((_) => watchVideo());
+  }
 
   @override
   void initState() {
     super.initState();
-    pause = getPause();
-    widget.videoPlayerController.addListener(updateState);
+    loadVideo().then((_) => watchVideo());
   }
 
-  bool getPause() => !widget.videoPlayerController.value.isPlaying;
+  Future<void> loadVideo() async {
+    setState(() => loading = true);
+    qualities = await getIt<EgybestRipository>().getVideoQualities(widget.link);
+    quality = qualities.first;
+  }
 
-  void updateState() => setState(() => pause = getPause());
+  Future<void> watchVideo() async {
+    setState(() => loading = true);
+    String link = await getIt<EgybestRipository>().getDirectLink(quality.link);
+    removePlayer();
+    videoPlayerController = VideoPlayerController.network(link);
+    await videoPlayerController.initialize();
+    await videoPlayerController.play();
+    videoPlayerController.addListener(updateState);
+    setState(() => loading = false);
+  }
+
+  bool getPause() => !videoPlayerController.value.isPlaying;
+
+  void updateState() => setState(() {});
 
   void toggleControls() => setState(() => showControls = !showControls);
 
-  void seekTo(Duration duration) async {
-    await widget.videoPlayerController.seekTo(duration);
+  void toggleFullScreen() {
+    fullScreen = !fullScreen;
+    if (fullScreen) {
+      SystemChrome.setPreferredOrientations(
+          [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      SystemChrome.setEnabledSystemUIOverlays([]);
+      widget.onFullScreen(true);
+    } else {
+      SystemChrome.setPreferredOrientations(
+          [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp]);
+      SystemChrome.setEnabledSystemUIOverlays(
+          [SystemUiOverlay.top, SystemUiOverlay.bottom]);
+      widget.onFullScreen(false);
+    }
+    //setState(() => fullScreen = !fullScreen);
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-    widget.videoPlayerController.removeListener(updateState);
+  void togglePause() => videoPlayerController.value.isPlaying
+      ? videoPlayerController.pause()
+      : videoPlayerController.play();
+
+  void seekTo(Duration duration) async {
+    await videoPlayerController.seekTo(duration);
+  }
+
+  void onChangeQuality() async {
+    final choice = await selectChoice(
+      context,
+      Future.value(qualities.map((e) => e.quality).toList()),
+    );
+    if (choice != null) {
+      quality = qualities.firstWhere((e) => e.quality == choice);
+      Duration duration = videoPlayerController.value.position;
+      await watchVideo();
+      seekTo(duration);
+    }
   }
 
   String duratioToString(Duration duration) {
@@ -290,150 +310,185 @@ class PlayerControlsState extends State<PlayerControls> {
     return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
   }
 
-  void onChangeQuality() async {
-    final choice = await selectChoice(
-      context,
-      Future.value(widget.qualities.map((e) => e.quality).toList()),
-    );
-    if (choice != null)
-      widget.onChangeQuality(
-        widget.qualities.firstWhere((e) => e.quality == choice),
-        widget.videoPlayerController.value.position,
+  @override
+  void dispose() {
+    super.dispose();
+    if (fullScreen) toggleFullScreen();
+    removePlayer();
+  }
+
+  void removePlayer() {
+    if (videoPlayerController != null) {
+      videoPlayerController.removeListener(updateState);
+      videoPlayerController.dispose();
+    }
+  }
+
+  Widget buildHeight({Widget child, double aspectRatio}) {
+    if (fullScreen)
+      return Container(
+        color: Colors.black,
+        height: MediaQuery.of(context).size.height,
+        child: child,
       );
+    if (aspectRatio != null)
+      return AspectRatio(
+        aspectRatio: aspectRatio,
+        child: child,
+      );
+    return child;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        GestureDetector(
-          onTap: () => toggleControls(),
-          child: Container(
-            color: Colors.black.withOpacity(showControls ? 0.5 : 0.0),
-          ),
+    if (loading)
+      return buildHeight(
+        child: Container(
+          height: 350,
+          child: Loading(),
         ),
-        Visibility(
-          visible: showControls,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 6.0,
-                vertical: 6.0,
+      );
+    return buildHeight(
+      aspectRatio: videoPlayerController.value.aspectRatio,
+      child: Stack(
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: AspectRatio(
+              aspectRatio: videoPlayerController.value.aspectRatio,
+              child: VideoPlayer(
+                videoPlayerController,
               ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => toggleControls(),
+            child: Container(
+              color: Colors.black.withOpacity(showControls ? 0.5 : 0.0),
+            ),
+          ),
+          Visibility(
+            visible: showControls,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6.0,
+                  vertical: 6.0,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(widget.title)),
+                    GestureDetector(
+                      onTap: () => onChangeQuality(),
+                      child: Icon(
+                        Icons.more_vert,
+                        size: 30,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Visibility(
+            visible: showControls,
+            child: Align(
+              alignment: Alignment.center,
               child: Row(
                 children: [
-                  Expanded(child: Text(widget.title)),
-                  GestureDetector(
-                    onTap: () => onChangeQuality(),
-                    child: Icon(
-                      Icons.more_vert,
-                      size: 30,
+                  Spacer(),
+                  Opacity(
+                    opacity: widget.onPrev != null ? 1 : 0,
+                    child: IconButton(
+                      iconSize: 40,
+                      icon: Icon(Icons.skip_previous),
+                      onPressed: widget.onPrev,
+                    ),
+                  ),
+                  IconButton(
+                    iconSize: 40,
+                    icon: Icon(getPause() ? Icons.play_arrow : Icons.pause),
+                    onPressed: () => togglePause(),
+                  ),
+                  Opacity(
+                    opacity: widget.onNext != null ? 1 : 0,
+                    child: IconButton(
+                      iconSize: 40,
+                      icon: Icon(Icons.skip_next),
+                      onPressed: widget.onNext,
+                    ),
+                  ),
+                  Spacer(),
+                ],
+              ),
+            ),
+          ),
+          Visibility(
+            visible: showControls,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Wrap(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6.0),
+                    child: Row(
+                      children: [
+                        Spacer(),
+                        GestureDetector(
+                          onTap: () => toggleFullScreen(),
+                          child: Icon(
+                            Icons.fullscreen,
+                            size: 30,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 10.0,
+                      right: 10.0,
+                      bottom: 10.0,
+                      top: 5.0,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          duratioToString(
+                            videoPlayerController.value.position,
+                          ),
+                        ),
+                        Expanded(
+                          child: SeekBar(
+                            value: videoPlayerController
+                                    .value.position.inMilliseconds /
+                                videoPlayerController
+                                    .value.duration.inMilliseconds,
+                            onProgressChanged: (value) {
+                              Duration duration = Duration(
+                                  milliseconds: (value *
+                                          videoPlayerController
+                                              .value.duration.inMilliseconds)
+                                      .toInt());
+                              seekTo(duration);
+                            },
+                          ),
+                        ),
+                        Text(
+                          duratioToString(
+                            videoPlayerController.value.duration,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-        Visibility(
-          visible: showControls,
-          child: Align(
-            alignment: Alignment.center,
-            child: Row(
-              children: [
-                Spacer(),
-                Opacity(
-                  opacity: widget.onPrev != null ? 1 : 0,
-                  child: IconButton(
-                    iconSize: 40,
-                    icon: Icon(Icons.skip_previous),
-                    onPressed: widget.onPrev,
-                  ),
-                ),
-                IconButton(
-                  iconSize: 40,
-                  icon: Icon(pause ? Icons.play_arrow : Icons.pause),
-                  onPressed: () => widget.onTogglePause(),
-                ),
-                Opacity(
-                  opacity: widget.onNext != null ? 1 : 0,
-                  child: IconButton(
-                    iconSize: 40,
-                    icon: Icon(Icons.skip_next),
-                    onPressed: widget.onNext,
-                  ),
-                ),
-                Spacer(),
-              ],
-            ),
-          ),
-        ),
-        Visibility(
-          visible: showControls,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: Wrap(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 6.0),
-                  child: Row(
-                    children: [
-                      Spacer(),
-                      GestureDetector(
-                        onTap: () => widget.onToggleFullScreen(),
-                        child: Icon(
-                          Icons.fullscreen,
-                          size: 30,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 10.0,
-                    right: 10.0,
-                    bottom: 10.0,
-                    top: 5.0,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        duratioToString(
-                          widget.videoPlayerController.value.position,
-                        ),
-                      ),
-                      Expanded(
-                        child: SeekBar(
-                          value: widget.videoPlayerController.value.position
-                                  .inMilliseconds /
-                              widget.videoPlayerController.value.duration
-                                  .inMilliseconds,
-                          onProgressChanged: (value) {
-                            Duration duration = Duration(
-                                milliseconds: (value *
-                                        widget.videoPlayerController.value
-                                            .duration.inMilliseconds)
-                                    .toInt());
-                            seekTo(duration);
-                          },
-                        ),
-                      ),
-                      Text(
-                        duratioToString(
-                          widget.videoPlayerController.value.duration,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        )
-      ],
+          )
+        ],
+      ),
     );
   }
 }
