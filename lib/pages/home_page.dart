@@ -32,12 +32,12 @@ class HomePageState extends State<HomePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              BottomButton(
-                text: 'Download',
-                expand: selectedPage == 0,
-                icon: CupertinoIcons.cloud_download,
-                onTap: () => selectPage(0),
-              ),
+              // BottomButton(
+              //   text: 'Download',
+              //   expand: selectedPage == 0,
+              //   icon: CupertinoIcons.cloud_download,
+              //   onTap: () => selectPage(0),
+              // ),
               BottomButton(
                 text: 'Home',
                 expand: selectedPage == 1,

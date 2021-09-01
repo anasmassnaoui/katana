@@ -9,6 +9,7 @@ import 'package:katana/models/movie_model.dart';
 import 'package:katana/models/quality.dart';
 import 'package:katana/models/season_model.dart';
 import 'package:katana/models/serie_model.dart';
+import 'package:katana/setup/get_it.dart';
 import 'package:katana/utils/client.dart';
 import 'package:meta/meta.dart';
 
@@ -266,7 +267,12 @@ class EgybestDatasource extends EgybestInterface {
     final download = parser.getElementsByClassName('bigbutton');
     if (download.isEmpty) {
       print("ERROR");
-      await _validate(parser.getElementsByTagName('script')[2].innerHtml);
+      try {
+        await _validate(parser.getElementsByTagName('script')[2].innerHtml);
+      } catch (e) {}
+      final res = await client.get('$link');
+      final download = parse(res.data).getElementsByClassName('bigbutton');
+      if (download.isEmpty) getIt<Client>().headers.remove('cookie');
       return getDirectLink(link);
     }
     final downloadLink = download[0].attributes['href'];

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 class Loading extends StatelessWidget {
   final EdgeInsetsGeometry padding;
+  final Color color;
 
-  Loading({
-    this.padding,
-  });
+  Loading({this.padding, this.color: Colors.white});
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +14,7 @@ class Loading extends StatelessWidget {
         child: SizedBox(
           child: CircularProgressIndicator(
             value: null,
+            color: color,
           ),
           width: 50,
           height: 50,

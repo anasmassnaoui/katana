@@ -1,14 +1,18 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 void loadPage(BuildContext context, Widget child) {
-  Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => child,
-        opaque: false,
-      ));
+  // Navigator.push(
+  //     context,
+  //     PageRouteBuilder(
+  //       pageBuilder: (_, __, ___) => child,
+  //       opaque: false,
+  //     ));
+
+  // Navigator.push(context, MaterialPageRoute(builder: (_) => child));
+
   // showModalBottomSheet(
-  //   isScrollControlled: false,
+  //   isScrollControlled: true,
   //   context: context,
   //   isDismissible: false,
   //   //shape: OutlineInputBorder(
@@ -19,9 +23,14 @@ void loadPage(BuildContext context, Widget child) {
   //   builder: (_) => child,
   // );
 
-  // showDialog(
-  //   context: context,
-  //   barrierDismissible: false,
-  //   builder: (_) => child,
-  // );
+  // showCupertinoDialog(context: context, builder: (_) => Material(child: child));
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => Material(
+      child: child,
+      type: MaterialType.transparency,
+    ),
+  );
 }
