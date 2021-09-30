@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/movie.dart';
 import 'package:katana/setup/get_it.dart';
+import 'package:katana/utils/loads.dart';
 import 'package:katana/widgets/loading.dart';
 import 'package:katana/widgets/movie_view.dart';
 import 'package:katana/widgets/player_with_controlls.dart';
@@ -70,7 +71,9 @@ class MoviePageState extends State<MoviePage> {
                                       title: movie.title,
                                       type: movie.type,
                                       duration: movie.duration,
-                                      onPlay: (_) => onPlay(),
+                                      onPlay: () => onPlay(),
+                                      onDownload: () =>
+                                          onDownload(context, movie.link),
                                     ),
                             ),
                             SliverToBoxAdapter(
