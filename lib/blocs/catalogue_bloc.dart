@@ -40,8 +40,6 @@ class CatalogueBloc extends Bloc<BlocEvent, BlocState> {
           hasReachedMax: event.hasReachedMax,
         ),
         filters: event.filters,
-        isSearching: event.isSearching,
-        searchValue: event.searchValue,
       );
     }
     if (event is MovieEvent) {
@@ -65,6 +63,13 @@ class CatalogueBloc extends Bloc<BlocEvent, BlocState> {
       yield (await egybestRipository.getSeason(event.link)).fold(
         (error) => ErrorState(message: 'server error'),
         (season) => SeasonState(season: season),
+      );
+    }
+
+    if (event is AutoCompleteEvent) {
+      yield (await egybestRipository.autoComplete(event.searchValue)).fold(
+        (error) => ErrorState(message: 'server error'),
+        (covers) => AutoCompleteState(covers: covers),
       );
     }
   }
