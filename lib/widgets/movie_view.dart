@@ -8,9 +8,8 @@ class MovieView extends StatelessWidget {
   final String title;
   final String type;
   final String duration;
-  final String link;
-  final void Function(String) onPlay;
-  final void Function(String) onDownload;
+  final void Function() onPlay;
+  final void Function() onDownload;
 
   const MovieView({
     Key key,
@@ -18,7 +17,6 @@ class MovieView extends StatelessWidget {
     this.title,
     this.type,
     this.duration,
-    this.link,
     this.onPlay,
     this.onDownload,
   }) : super(key: key);
@@ -44,7 +42,7 @@ class MovieView extends StatelessWidget {
                       child: IconButton(
                     iconSize: 40,
                     icon: Icon(CupertinoIcons.play_fill),
-                    onPressed: () => onPlay(link),
+                    onPressed: () => onPlay(),
                   )),
                   Positioned.fill(
                     child: Align(
@@ -57,7 +55,7 @@ class MovieView extends StatelessWidget {
                           icon: Icon(
                             CupertinoIcons.cloud_download,
                           ),
-                          onPressed: () => onDownload(link),
+                          onPressed: () => onDownload(),
                         ),
                       ),
                     ),
