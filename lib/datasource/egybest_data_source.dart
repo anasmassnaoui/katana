@@ -1,4 +1,5 @@
-import 'package:flutter/services.dart';
+import 'dart:convert';
+
 import 'package:html/parser.dart';
 import 'package:interactive_webview/interactive_webview.dart';
 import 'package:katana/entities/cover.dart';
@@ -9,7 +10,6 @@ import 'package:katana/models/movie_model.dart';
 import 'package:katana/models/quality.dart';
 import 'package:katana/models/season_model.dart';
 import 'package:katana/models/serie_model.dart';
-import 'package:katana/setup/get_it.dart';
 import 'package:katana/utils/client.dart';
 import 'package:meta/meta.dart';
 
@@ -17,17 +17,15 @@ abstract class EgybestInterface {
   /// Calls the https://egybest.com/trending/:option?output_format=json endpoint.
   ///
   /// Throws a [ServerException] for all error codes.
-  Future<CatalogueModel> getTrending({
-    @required List<Map<String, String>> filters,
-    int page: 0,
-    String searchValue,
-  });
-
+  Future<CatalogueModel> getTrending(
+      {@required List<Map<String, String>> filters, int page: 0});
+  Future<CatalogueModel> search(String searchValue, {int page: 0});
   Future<MovieModel> getMovie(String link);
   Future<SerieModel> getSerie(String link);
   Future<SeasonModel> getSeason(String link);
   Future<List<Quality>> getVideoQualities(String link);
   Future<String> getDirectLink(String link);
+  Future<List<Cover>> autoComplete(String searchValue);
 }
 
 class EgybestDatasource extends EgybestInterface {
@@ -37,19 +35,17 @@ class EgybestDatasource extends EgybestInterface {
   EgybestDatasource({
     @required this.client,
     @required this.webView,
-  }) {
-    _setupWebView();
-  }
+  });
 
-  void _setupWebView() async {
-    webView.loadHTML(
-      await rootBundle.loadString(
-        "lib/utils/decoder.html",
-        cache: false,
-      ),
-      baseUrl: 'http://127.0.0.1/',
-    );
-  }
+  // void _setupWebView() async {
+  //   webView.loadHTML(
+  //     await rootBundle.loadString(
+  //       "lib/utils/decoder.html",
+  //       cache: false,
+  //     ),
+  //     baseUrl: 'http://127.0.0.1/',
+  //   );
+  // }
 
   String formatFilter(List<Map<String, String>> filters) {
     String filterFormat = '';
@@ -71,22 +67,22 @@ class EgybestDatasource extends EgybestInterface {
   CoverType selectType(String link) {
     if (link.contains('serie'))
       return CoverType.Serie;
-    else if (link.contains('episode')) return CoverType.Episode;
-    return CoverType.Movie;
+    else if (link.contains('episode'))
+      return CoverType.Episode;
+    else
+      return CoverType.Movie;
   }
 
   @override
   Future<CatalogueModel> getTrending({
     @required List<Map<String, String>> filters,
     int page: 0,
-    String searchValue,
   }) async {
     try {
       final queryPage = page > 0 ? 'page=$page&' : '';
       final filterFormat = formatFilter(filters);
-      final res = await client.get(searchValue != null
-          ? '/explore/?q=$searchValue&$queryPage&output_format=json'
-          : '/$filterFormat?${queryPage}output_format=json');
+      final res =
+          await client.get('/$filterFormat?${queryPage}output_format=json');
 
       if ((res.data['html'] as String).isEmpty)
         return CatalogueModel(covers: [], page: 1, hasReachedMax: true);
@@ -212,9 +208,13 @@ class EgybestDatasource extends EgybestInterface {
 
   @override
   Future<List<Quality>> getVideoQualities(String link) async {
+    print("GET $link");
     try {
-      final res = await client.get('$link&output_format=json');
-      final parser = parse(res.data['html']);
+      final res = await client.get('$link');
+      //await validateAd(res.data, 1);
+      //final res = await client.get('$link&output_format=json');
+      //final parser = parse(res.data['html']);
+      final parser = parse(res.data);
       return parser
           .getElementsByClassName('dls_table')[0]
           .children[1]
@@ -225,66 +225,192 @@ class EgybestDatasource extends EgybestInterface {
             tds[3].children[0].attributes['data-url']);
       }).toList();
     } catch (e) {
+      print(e);
       throw ServerException();
     }
   }
 
-  Future<Map<dynamic, dynamic>> _callJsFunction(
-    String function,
-    String data,
-  ) async {
-    webView.evalJavascript('$function("$data")');
-    return (await webView.didReceiveMessage.first).data;
-  }
+  Future<void> validateAd(String html, int phase) async {
+    webView.loadHTML(
+      html,
+      baseUrl: "http://127.0.0.1/",
+    );
+    print("loaded!");
+    await Future.delayed(Duration(seconds: 2));
+    print("eval!");
+    webView.evalJavascript('''
+            window.message = {};
 
-  Future<void> _validate(String script, {data}) async {
-    if (data == null) data = await _callJsFunction('getValidation', script);
-    await client.get('/${data["adsLink"]}').catchError((e) {});
-    await Future.delayed(Duration(microseconds: 1000), () async {
-      return await client
-          .post('/${data["postLink"]}',
-              data: Map<String, String>.from(data["postData"]['data']))
-          .catchError((e) {});
-    });
-  }
+            window.test = RegExp.prototype.test
+            window._test = function(match) {
+                if (this == '/android|ios|mobile/i') return false;
+                if (this == '/ipad|ipod|iphone|ios/i') return true;
+                RegExp.prototype.test = window.test
+                const res = this.test(match)
+                RegExp.prototype.test = window._test
+                return res;
+            }
+            RegExp.prototype.test = window._test
 
-  Future<void> _validateVideo(String script, {data}) async {
-    if (data == null)
-      data = await _callJsFunction('getVideoValidation', script);
-    await client.get('/${data["adsLink"]}').catchError((e) {});
-    await Future.delayed(const Duration(milliseconds: 1000), () async {
-      return await client
-          .post('/${data["postLink"]}',
-              data: Map<String, String>.from(data["postData"]['data']))
-          .catchError((e) {});
-    });
+            const nativeCommunicator =
+              typeof webkit !== "undefined"
+                ? webkit.messageHandlers.native
+                : window.native;
+
+            window.XMLHttpRequest = class {
+              UNSENT = 0;
+              OPENED = 1;
+              HEADERS_RECEIVED = 2;
+              LOADING = 3;
+              DONE = 4;
+              readyState = 1;
+              onreadystatechange = function () { };
+              responseText = "";
+              responseXML = "";
+              status = null;
+              statusText = null;
+              setRequestHeader = function (header, value) { };
+              abort = function () { }
+
+              open(method, url, async) {
+                message.postUrl = url
+                this.onreadystatechange();
+              }
+
+              send(data) {
+                message.postData = data;
+                nativeCommunicator.postMessage(JSON.stringify(message));
+              }
+            }
+
+            window.open = (url) => {
+              message.adsUrl = url
+              class W {
+                constructor() {
+                  setTimeout(this.onload, 1000)
+                }
+              }
+              return new W();
+            }
+
+            document.body.click()
+      ''');
+    final data = (await webView.didReceiveMessage.first).data;
+    print(data);
+    // await Future.delayed(Duration(hours: 1));
+    final postUrl = data['postUrl'];
+    final adsUrl = data['adsUrl'];
+    final postData = (data['postData'] as String); //.split('=');
+    // webView.evalJavascript('''
+    //   nativeCommunicator.postMessage(document.cookie);
+    // ''');
+    // final cookies = (await webView.didReceiveMessage.first).data as String;
+    // cookies.split(';').forEach((cookie) => client.addCookie(cookie));
+    // print(postData);
+    final res = await client.get('$adsUrl').catchError((e) {});
+    final start = DateTime.now().millisecondsSinceEpoch;
+    if (phase == 1) {
+      String text = (res.data as String)
+          .replaceAll("<script>", "")
+          .replaceAll("</script>", "");
+      webView.loadHTML(
+        '''
+      <html>
+      <script>
+      const nativeCommunicator =
+      typeof webkit !== "undefined"
+        ? webkit.messageHandlers.native
+        : window.native;
+      eval = (expr) => nativeCommunicator.postMessage(expr);
+      $text
+      </script>
+      </html>
+    ''',
+        baseUrl: "http://127.0.0.1/",
+      );
+      final expr = (await webView.didReceiveMessage.first).data;
+      final cookie = expr.split('"')[1].split(';')[0];
+      if ((cookie as String).contains('=')) client.addCookie(cookie);
+      print(cookie);
+    }
+    final end = DateTime.now().millisecondsSinceEpoch;
+    await Future.delayed(Duration(milliseconds: 500 - (end - start)));
+    await client.post('$postUrl', data: postData, headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    }).catchError((e) {});
+    print(end - start);
   }
 
   @override
   Future<String> getDirectLink(String link) async {
-    final res = await client.get('$link');
+    final res = await client.get('$link', headers: {
+      'Referer': 'https://${client.url}/movie/dune-2021/?ref=trends-p1',
+    });
+    print(res.data);
     final parser = parse(res.data);
     final download = parser.getElementsByClassName('bigbutton');
     if (download.isEmpty) {
-      print("ERROR");
-      try {
-        await _validate(parser.getElementsByTagName('script')[2].innerHtml);
-      } catch (e) {}
-      final res = await client.get('$link');
-      final download = parse(res.data).getElementsByClassName('bigbutton');
-      if (download.isEmpty) getIt<Client>().headers.remove('cookie');
+      print("BREAK");
+      //await Future.delayed(Duration(hours: 1));
+      await validateAd(res.data, 1);
       return getDirectLink(link);
     }
     final downloadLink = download[0].attributes['href'];
     if (downloadLink == null) {
-      await _validateVideo(parser.getElementsByTagName('script')[1].innerHtml);
-      print("stage two done");
+      print("PHASE 2");
+      await validateAd(res.data, 2);
       return getDirectLink(res.redirects.isNotEmpty
           ? res.redirects.first.location.toString()
           : link);
     } else {
-      print("stage three done");
+      print("PHASE 3");
       return downloadLink;
+    }
+  }
+
+  @override
+  Future<CatalogueModel> search(String searchValue, {int page: 0}) async {
+    try {
+      final queryPage = page > 0 ? 'page=$page&' : '';
+      final res = await client
+          .get('/explore/?q=$searchValue&$queryPage&output_format=json');
+
+      if ((res.data['html'] as String).isEmpty)
+        return CatalogueModel(covers: [], page: 1, hasReachedMax: true);
+      final parser = parse(res.data['html']);
+      return CatalogueModel.fromJson({
+        'covers': parser
+            .getElementsByClassName('movie')
+            .map((e) => {
+                  'title': e.getElementsByClassName('title').first.innerHtml,
+                  'image':
+                      e.getElementsByTagName('img').first.attributes['src'],
+                  'link': e.attributes['href'],
+                  'type': selectType(e.attributes['href']).index,
+                })
+            .toList(),
+        'hasReachedMax': parser.getElementsByClassName('auto').isEmpty,
+        'page': page + 1
+      });
+    } catch (e) {
+      throw ServerException();
+    }
+  }
+
+  Future<List<Cover>> autoComplete(String searchValue) async {
+    try {
+      final res = await client.get('/autoComplete.php?q=$searchValue');
+      final data = jsonDecode(res.data);
+      return List<Map<String, dynamic>>.from(data[searchValue])
+          .map((cover) => Cover(
+              image: '',
+              title: cover['t'],
+              link: '/' + cover['u'] + '/?ref=home-trends',
+              type: selectType(cover['u'])))
+          .toList();
+    } catch (e) {
+      throw ServerException();
     }
   }
 }
