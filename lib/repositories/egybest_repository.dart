@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:katana/entities/catalogue.dart';
+import 'package:katana/entities/cover.dart';
 import 'package:katana/errors/error.dart';
 import 'package:katana/datasource/egybest_data_source.dart';
 import 'package:katana/models/movie_model.dart';
@@ -15,14 +16,23 @@ class EgybestRipository {
     @required this.egybestDatasource,
   });
 
-  Future<Either<Error, Catalogue>> getTrending({
-    @required List<Map<String, String>> filters,
-    int page: 1,
-    String searchValue,
-  }) async {
+  Future<Either<Error, Catalogue>> getTrending(
+      {@required List<Map<String, String>> filters, int page: 1}) async {
     try {
-      return Right(await egybestDatasource.getTrending(
-          filters: filters, page: page, searchValue: searchValue));
+      return Right(
+        await egybestDatasource.getTrending(filters: filters, page: page),
+      );
+    } on ServerException {
+      return Left(ServerError());
+    }
+  }
+
+  Future<Either<Error, Catalogue>> search(
+      {@required String searchValue, int page: 1}) async {
+    try {
+      return Right(
+        await egybestDatasource.search(searchValue, page: page),
+      );
     } on ServerException {
       return Left(ServerError());
     }
@@ -58,5 +68,13 @@ class EgybestRipository {
 
   Future<String> getDirectLink(String link) {
     return egybestDatasource.getDirectLink(link);
+  }
+
+  Future<Either<Error, List<Cover>>> autoComplete(String searchValue) async {
+    try {
+      return Right(await egybestDatasource.autoComplete(searchValue));
+    } on ServerException {
+      return Left(ServerError());
+    }
   }
 }
