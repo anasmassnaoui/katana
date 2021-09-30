@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:katana/blocs/catalogue_bloc.dart';
 import 'package:katana/entities/season.dart';
+import 'package:katana/utils/loads.dart';
 import 'package:katana/widgets/episod_view.dart';
 import 'package:katana/widgets/loading.dart';
 
@@ -88,6 +89,7 @@ class SeasonsLoaderState extends State<SeasonsLoader> {
                   itemBuilder: (_, _index) => EpisodeView(
                     episode: widget.loadedSeasons[index].episodes[_index],
                     onPlay: (_) => widget.onPlay(index, _index),
+                    onDownload: (link) => onDownload(context, link),
                   ),
                   itemCount: widget.loadedSeasons[index].episodes.length,
                 ),
