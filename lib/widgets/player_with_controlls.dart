@@ -7,6 +7,7 @@ import 'package:katana/repositories/egybest_repository.dart';
 import 'package:flutter/services.dart';
 import 'package:katana/setup/get_it.dart';
 import 'package:katana/widgets/loading.dart';
+import 'package:wakelock/wakelock.dart';
 
 class PlayerWithControls extends StatefulWidget {
   final void Function() onNext;
@@ -45,6 +46,7 @@ class PlayerWithControlsState extends State<PlayerWithControls> {
   @override
   void initState() {
     super.initState();
+    Wakelock.enable();
     loadVideo().then((_) => watchVideo());
   }
 
@@ -125,6 +127,7 @@ class PlayerWithControlsState extends State<PlayerWithControls> {
   @override
   void dispose() {
     super.dispose();
+    Wakelock.disable();
     if (fullScreen) toggleFullScreen();
     removePlayer();
   }
