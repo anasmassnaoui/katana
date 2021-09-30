@@ -25,18 +25,23 @@ class ErrorState extends BlocState {
 class CatalogueState extends BlocState {
   final Catalogue catalogue;
   final List<Map<String, String>> filters;
-  final bool isSearching;
-  final String searchValue;
 
   CatalogueState({
     @required this.catalogue,
     this.filters,
-    this.isSearching: false,
-    this.searchValue,
   });
 
   @override
-  List<Object> get props => [catalogue, filters, isSearching, searchValue];
+  List<Object> get props => [catalogue, filters];
+}
+
+class AutoCompleteState extends BlocState {
+  final List<Cover> covers;
+
+  AutoCompleteState({@required this.covers});
+
+  @override
+  List<Object> get props => [covers];
 }
 
 class MovieState extends BlocState {
