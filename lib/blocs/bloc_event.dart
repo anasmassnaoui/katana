@@ -74,3 +74,12 @@ class CatalogueEvent extends BlocEvent {
   List<Object> get props =>
       [covers, filters, isSearching, searchValue, page, hasReachedMax];
 }
+
+class AutoCompleteEvent extends BlocEvent {
+  final String searchValue;
+
+  AutoCompleteEvent({this.searchValue: ''});
+
+  @override
+  List<Object> get props => [searchValue];
+}
